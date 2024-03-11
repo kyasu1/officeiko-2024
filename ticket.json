@@ -1,0 +1,253 @@
+{
+  "ticket": {
+    "date": "2020-06-01",
+    "items": [
+      {
+        "category": "商品券",
+        "comment": "一部買取不可あり",
+        "name": "全国百貨店共通商品券",
+        "rate": 0.96
+      },
+      {
+        "category": "商品券",
+        "comment": "現行柄以外はマイナス1%",
+        "name": "セブン＆アイホールディングス商品券",
+        "rate": 0.95
+      },
+      {
+        "category": "商品券",
+        "comment": "現行柄以外はマイナス1%",
+        "name": "イオン商品券",
+        "rate": 0.96
+      },
+      {
+        "category": "商品券",
+        "comment": "現行柄以外はマイナス1%",
+        "name": "ヨドバシカメラ商品券",
+        "rate": 0.95
+      },
+      {
+        "category": "商品券",
+        "comment": "現行柄以外はマイナス1%",
+        "name": "ビックカメラ商品券",
+        "rate": 0.95
+      },
+      {
+        "category": "ギフト券",
+        "comment": "ホログラムのあるもの",
+        "name": "JCBギフト",
+        "rate": 0.95
+      },
+      {
+        "category": "ギフト券",
+        "comment": "ホログラムのあるもの・現行柄のみ",
+        "name": "VJAギフト",
+        "rate": 0.95
+      },
+      {
+        "category": "ギフト券",
+        "comment": "ホログラムのあるもの",
+        "name": "JTBナイスギフト",
+        "rate": 0.95
+      },
+      {
+        "category": "ギフト券",
+        "comment": "ホログラムのあるもの・現行柄のみ",
+        "name": "DCUFJニコス",
+        "rate": 0.92
+      },
+      {
+        "category": "ギフト券",
+        "comment": "ホログラムのあるもの・現行柄のみ",
+        "name": "UC",
+        "rate": 0.95
+      },
+      {
+        "category": "旅行券",
+        "comment": "",
+        "name": "びゅう商品券",
+        "rate": 0.95
+      },
+      {
+        "category": "旅行券",
+        "comment": "新券",
+        "name": "JTB",
+        "rate": 0.88
+      },
+      {
+        "category": "旅行券",
+        "comment": "裏面に署名欄のあるものは買取不可",
+        "name": "近ツリ",
+        "rate": 0.88
+      },
+      {
+        "category": "ビール券",
+        "comment": "2020年10月1日発行新券",
+        "name": "ビール券（770）",
+        "price": 730
+      },
+      {
+        "category": "ビール券",
+        "comment": "2020年10月1日発行新券",
+        "name": "ビール券（488）",
+        "price": 460
+      },
+      {
+        "category": "ビール券",
+        "comment": "2019年10月1日発行",
+        "name": "ビール券（798）",
+        "price": 750
+      },
+      {
+        "category": "ビール券",
+        "comment": "2018年4月1日発行",
+        "name": "ビール券（784）",
+        "price": 740
+      },
+      {
+        "category": "ビール券",
+        "comment": "",
+        "name": "ビール券（724）",
+        "price": 680
+      },
+      {
+        "category": "ビール券",
+        "comment": "2019年10月1日発行新券",
+        "name": "ビール券（504）",
+        "price": 460
+      },
+      {
+        "category": "ビール券",
+        "comment": "",
+        "name": "ビール券（494）",
+        "price": 440
+      },
+      {
+        "category": "その他",
+        "comment": "",
+        "name": "マックカード500円",
+        "price": 450
+      },
+      {
+        "category": "その他",
+        "comment": "",
+        "name": "ジェフグルメカード",
+        "price": 450
+      },
+      {
+        "category": "その他",
+        "comment": "",
+        "name": "お米券540円",
+        "price": 480
+      },
+      {
+        "category": "その他",
+        "comment": "",
+        "name": "お米券440円",
+        "price": 380
+      },
+      {
+        "category": "その他",
+        "comment": "店頭発行用は買取不可",
+        "name": "クオカード",
+        "rate": 0.9
+      },
+      {
+        "category": "その他",
+        "comment": "",
+        "name": "図書券・図書カード",
+        "rate": 0.9
+      },
+      {
+        "category": "その他",
+        "comment": "PINを削って残額を確認させていただきます",
+        "name": "図書カードNEXT",
+        "rate": 0.8
+      },
+      {
+        "category": "その他",
+        "comment": "コピーライト付きアニメ柄など、その他は100円〜、個人制作は買取り不可",
+        "name": "テレカ50度数",
+        "price": 350
+      },
+      {
+        "category": "その他",
+        "comment": "絵柄不問、両面印刷不可、表面ホワイト不可",
+        "name": "テレカ105度数",
+        "price": 700
+      },
+      {
+        "category": "切手・印紙",
+        "comment": "現行のデザイン・のり落ちは買取不可",
+        "name": "収入印紙200円(100枚シート)",
+        "rate": 0.94
+      },
+      {
+        "category": "切手・印紙",
+        "comment": "現行のデザイン・のり落ちは買取不可",
+        "name": "収入印紙1000円未満(100枚シート)",
+        "rate": 0.92
+      },
+      {
+        "category": "切手・印紙",
+        "comment": "のり落ちは買取不可",
+        "name": "収入印紙1000円未満バラ",
+        "rate": 0.9
+      },
+      {
+        "category": "切手・印紙",
+        "comment": "",
+        "name": "普通切手100枚シート・現行柄63円以上",
+        "rate": 0.75
+      },
+      {
+        "category": "切手・印紙",
+        "comment": "",
+        "name": "普通切手100枚シート・現行柄上記以外",
+        "rate": 0.7
+      },
+      {
+        "category": "切手・印紙",
+        "comment": "",
+        "name": "記念切手10枚シート・50円以上",
+        "rate": 0.7
+      },
+      {
+        "category": "切手・印紙",
+        "comment": "",
+        "name": "切手バラ・50円以上",
+        "rate": 0.5
+      },
+      {
+        "category": "切手・印紙",
+        "comment": "",
+        "name": "切手バラ・50円未満",
+        "rate": 0.5
+      },
+      {
+        "category": "切手・印紙",
+        "comment": "",
+        "name": "63円新はがき・200枚完封",
+        "rate": 0.7
+      },
+      {
+        "category": "切手・印紙",
+        "comment": "",
+        "name": "はがきバラ",
+        "rate": 0.5
+      },
+      {
+        "category": "切手・印紙",
+        "comment": "",
+        "name": "レターパックプラス520円",
+        "price": 400
+      },
+      {
+        "category": "切手・印紙",
+        "comment": "",
+        "name": "レターパックライト370円",
+        "price": 280
+      }
+    ]
+  }
+}
