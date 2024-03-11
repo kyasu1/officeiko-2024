@@ -7,66 +7,27 @@ module Route.KaitoriTicket exposing (Model, Msg, RouteParams, route, Data, Actio
 -}
 
 import BackendTask
-import Effect
-import ErrorPage
-import FatalError
+import FatalError exposing (FatalError)
 import Head
-import Html
-import PagesMsg
-import RouteBuilder
-import Server.Request
-import Server.Response
+import Head.Seo as Seo
+import Layout.KaitoriTicket
+import PagesMsg exposing (PagesMsg)
+import RouteBuilder exposing (App, StatelessRoute)
+import Settings
 import Shared
-import UrlPath
-import View
+import View exposing (View)
 
 
 type alias Model =
     {}
 
 
-type Msg
-    = NoOp
+type alias Msg =
+    ()
 
 
 type alias RouteParams =
     {}
-
-
-route : RouteBuilder.StatefulRoute RouteParams Data ActionData Model Msg
-route =
-    RouteBuilder.serverRender { data = data, action = action, head = head }
-        |> RouteBuilder.buildWithLocalState
-            { view = view
-            , init = init
-            , update = update
-            , subscriptions = subscriptions
-            }
-
-
-init :
-    RouteBuilder.App Data ActionData RouteParams
-    -> Shared.Model
-    -> ( Model, Effect.Effect Msg )
-init app shared =
-    ( {}, Effect.none )
-
-
-update :
-    RouteBuilder.App Data ActionData RouteParams
-    -> Shared.Model
-    -> Msg
-    -> Model
-    -> ( Model, Effect.Effect Msg )
-update app shared msg model =
-    case msg of
-        NoOp ->
-            ( model, Effect.none )
-
-
-subscriptions : RouteParams -> UrlPath.UrlPath -> Shared.Model -> Model -> Sub Msg
-subscriptions routeParams path shared model =
-    Sub.none
 
 
 type alias Data =
@@ -77,31 +38,46 @@ type alias ActionData =
     {}
 
 
-data :
-    RouteParams
-    -> Server.Request.Request
-    -> BackendTask.BackendTask FatalError.FatalError (Server.Response.Response Data ErrorPage.ErrorPage)
-data routeParams request =
-    BackendTask.succeed (Server.Response.render {})
+route : StatelessRoute RouteParams Data ActionData
+route =
+    RouteBuilder.single
+        { head = head
+        , data = data
+        }
+        |> RouteBuilder.buildNoState { view = view }
 
 
-head : RouteBuilder.App Data ActionData RouteParams -> List Head.Tag
-head app =
-    []
+data : BackendTask.BackendTask FatalError Data
+data =
+    BackendTask.succeed {}
+
+
+head :
+    App Data ActionData RouteParams
+    -> List Head.Tag
+head _ =
+    Seo.summary
+        { canonicalUrlOverride = Nothing
+        , siteName = Settings.title
+        , image = Settings.image
+        , description = Settings.subtitle
+        , title = Settings.withSubtitle "金券買取"
+        , locale = Settings.locale
+        }
+        |> Seo.article
+            { tags = []
+            , section = Nothing
+            , publishedTime = Nothing
+            , modifiedTime = Nothing
+            , expirationTime = Nothing
+            }
 
 
 view :
-    RouteBuilder.App Data ActionData RouteParams
+    App Data ActionData RouteParams
     -> Shared.Model
-    -> Model
-    -> View.View (PagesMsg.PagesMsg Msg)
-view app shared model =
-    { title = "KaitoriTicket", body = [ Html.h2 [] [ Html.text "New Page" ] ] }
-
-
-action :
-    RouteParams
-    -> Server.Request.Request
-    -> BackendTask.BackendTask FatalError.FatalError (Server.Response.Response ActionData ErrorPage.ErrorPage)
-action routeParams request =
-    BackendTask.succeed (Server.Response.render {})
+    -> View (PagesMsg Msg)
+view _ _ =
+    { title = Settings.withSubtitle "金券買取"
+    , body = Layout.KaitoriTicket.view
+    }
