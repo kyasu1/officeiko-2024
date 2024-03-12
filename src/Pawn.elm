@@ -7,6 +7,7 @@ import Html exposing (..)
 import Html.Attributes as A exposing (class)
 import Html.Events as E
 import Html.Events.Extra as E
+import Layout
 import Shared
 import Utils
 
@@ -106,8 +107,8 @@ update _ msg model =
 view : Model -> Html Msg
 view ({ form } as model) =
     div []
-        [ h2 [ class "py-2 text-center text-2xl" ] [ text "お借入シミュレーション" ]
-        , Html.form [ class "grid grid-cols-3 gap-4 items-end" ]
+        [ Layout.subHeader [ text "お借入シミュレーション" ]
+        , Html.form [ class "grid grid-cols-3 gap-4 items-end p-4" ]
             [ div [ class "flex flex-col" ]
                 [ label [] [ text "お借入予定日" ]
                 , input
@@ -165,31 +166,6 @@ view ({ form } as model) =
                             , text (Decimal.toString (Decimal.mul (Decimal.fromInt 100) contract.rate))
                             , text "%"
                             ]
-
-                        -- , div [ class "flex flex-col" ]
-                        --     [ label [ class "text-xs md:text-sm" ] [ text (dueDate 1 contract.contractDate |> Utils.kanjiDate), text "まで" ]
-                        --     , div [ class "border border-gray-400 p-1 h-8 text-right bg-gray-100" ]
-                        --         [ text
-                        --             (contract.interest |> Decimal.truncate 0 |> Utils.toPrice)
-                        --         , text "円"
-                        --         ]
-                        --     ]
-                        -- , div [ class "flex flex-col" ]
-                        --     [ label [ class "text-xs md:text-sm" ] [ text (dueDate 2 contract.contractDate |> Utils.kanjiDate), text "まで" ]
-                        --     , div [ class "border border-gray-400 p-1 h-8 text-right bg-gray-100" ]
-                        --         [ text
-                        --             (Decimal.mul (Decimal.fromInt 2) contract.interest |> Decimal.truncate 0 |> Utils.toPrice)
-                        --         , text "円"
-                        --         ]
-                        --     ]
-                        -- , div [ class "flex flex-col" ]
-                        --     [ label [ class "text-xs md:text-sm" ] [ text (dueDate 3 contract.contractDate |> Utils.kanjiDate), text "まで" ]
-                        --     , div [ class "border border-gray-400 p-1 h-8 text-right bg-gray-100" ]
-                        --         [ text
-                        --             (Decimal.mul (Decimal.fromInt 3) contract.interest |> Decimal.truncate 0 |> Utils.toPrice)
-                        --         , text "円"
-                        --         ]
-                        --     ]
                         , div [ class "col-span-3" ] [ text "返済総額" ]
                         , div [ class "flex flex-col" ]
                             [ label [ class "text-xs md:text-sm" ] [ text (dueDate 1 contract.contractDate |> Utils.kanjiDate), text "まで" ]

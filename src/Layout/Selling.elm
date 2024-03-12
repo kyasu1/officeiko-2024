@@ -52,7 +52,12 @@ row alignment item =
                 Right ->
                     class "md:order-last"
             ]
-            [ img [ A.src item.image, class "w-full max-w-[240px] border border-black" ] []
+            [ img
+                [ A.src item.image
+                , class "w-full max-w-[240px] border border-black"
+                , A.attribute "loading" "lazy"
+                ]
+                []
             ]
         , div [ class "md:col-span-2 bg-white w-full h-full p-4 shadow-sm" ]
             [ h3 [ class "font-bold" ] [ text item.header ]
@@ -178,7 +183,7 @@ items =
             [ text "NゲージやHOゲージ、車両やレール、ストラクチャーなども買取させていただきます。"
             , text "HOゲージの車両や、Nゲージの車輌セットなど、高価格帯のお品物であれば質預かりも可能です。"
             ]
-      , image = "/images/item-tool.jpg"
+      , image = "/images/item-toy.jpg"
       }
     , { header = "金券"
       , body =

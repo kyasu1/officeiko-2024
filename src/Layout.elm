@@ -1,4 +1,4 @@
-module Layout exposing (externalLink, hero, image, link, section)
+module Layout exposing (externalLink, hero, image, link, section, subHeader)
 
 import Html exposing (..)
 import Html.Attributes as A exposing (class)
@@ -24,8 +24,8 @@ hero attrs contents =
 image : List (Attribute msg) -> Html msg -> Html msg
 image attrs contents =
     div
-        (class "flex items-center justify-center bg-white"
-            :: attrs
+        ([ class "flex items-center justify-center bg-white", A.attribute "loading" "lazy" ]
+            ++ attrs
         )
         [ contents
         ]
@@ -46,3 +46,7 @@ link s route =
 externalLink : String -> List (Html msg) -> Html msg
 externalLink url content =
     a [ linkCss, A.target "_blank", A.href url, A.rel "noopener noreferrer" ] content
+
+
+subHeader =
+    h2 [ class "text-center text-xl p-2 mb-2 bg-gray-200 text-gray-900 font-semibold" ]

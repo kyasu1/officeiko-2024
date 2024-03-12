@@ -211,31 +211,35 @@ view sharedData page model toMsg pageView =
                 ]
             ]
         , Html.main_ [ class "bg-gray-50 print:bg-white" ] pageView.body
-        , viewFooter
+        , viewFooter page.path
         ]
     , title = pageView.title
     }
 
 
-viewFooter : Html msg
-viewFooter =
+viewFooter : UrlPath -> Html msg
+viewFooter path =
     footer [ class "px-6 py-14 md:pt-[20px] md:pb-[40px] bg-iko-500 mt-10 print:mt-0 print:hidden" ]
         [ div [ class "md:max-w-[1120px] m-auto w-full" ]
-            [ ul [ class "flex text-sm text-white font-medium" ]
-                [ li [ class "px-4 py-2" ] [ Route.link [] [ text "ニュース" ] Route.Posts ]
-                ]
-            , ul [ class "flex text-sm text-white font-medium" ]
-                [ li [ class "px-4 py-2" ] [ Route.link [] [ text "質入・融資" ] Route.Pawn ]
-                , li [ class "px-4 py-2" ] [ Route.link [] [ text "取扱商品" ] Route.Calendar ]
-                , li [ class "px-4 py-2" ] [ Route.link [] [ text "金プラ相場" ] Route.Stocks ]
-                , li [ class "px-4 py-2" ] [ Route.link [] [ text "金券買取" ] Route.KaitoriTicket ]
-                , li [ class "px-4 py-2" ] [ Route.link [] [ text "WU" ] Route.WesternUnion ]
-                ]
-            , ul [ class "flex text-sm text-gray-300" ]
-                [ li [ class "px-4 py-2" ] [ Route.link [] [ text "カレンダー" ] Route.Calendar ]
-                , li [ class "px-4 py-2" ] [ Route.link [] [ text "アクセス" ] Route.Calendar ]
-                , li [ class "px-4 py-2" ] [ Route.link [] [ text "プリバシーポリシー" ] Route.Privacy ]
-                , li [ class "px-4 py-2" ] [ Route.link [] [ text "会社概要" ] Route.About ]
+            [ div [ class "flex flex-row md:flex-col" ]
+                [ div []
+                    [ ul [ class "flex flex-col md:flex-row text-sm text-white font-medium" ]
+                        [ li [ class "px-4 py-2" ] [ Route.link [] [ text "ニュース" ] Route.Posts ]
+                        ]
+                    , ul [ class "flex flex-col md:flex-row text-sm text-white font-medium" ]
+                        [ li [ class "px-4 py-2" ] [ Route.link [] [ text "質入・融資" ] Route.Pawn ]
+                        , li [ class "px-4 py-2" ] [ Route.link [] [ text "取扱商品" ] Route.Calendar ]
+                        , li [ class "px-4 py-2" ] [ Route.link [] [ text "金プラ相場" ] Route.Stocks ]
+                        , li [ class "px-4 py-2" ] [ Route.link [] [ text "金券買取" ] Route.KaitoriTicket ]
+                        , li [ class "px-4 py-2" ] [ Route.link [] [ text "WU" ] Route.WesternUnion ]
+                        ]
+                    ]
+                , ul [ class "flex flex-col md:flex-row text-sm text-gray-300" ]
+                    [ li [ class "px-4 py-2" ] [ Route.link [] [ text "カレンダー" ] Route.Calendar ]
+                    , li [ class "px-4 py-2" ] [ Route.link [] [ text "アクセス" ] Route.Calendar ]
+                    , li [ class "px-4 py-2" ] [ Route.link [] [ text "プリバシーポリシー" ] Route.Privacy ]
+                    , li [ class "px-4 py-2" ] [ Route.link [] [ text "会社概要" ] Route.About ]
+                    ]
                 ]
             , hr [ class "border-gray-500 my-9 md:my-[20px]" ] []
             , div [ class "text-center leading-loose relative" ]
@@ -244,7 +248,7 @@ viewFooter =
                 , p [ class "text-white text-sm" ] [ text "Western Union 6:30PM" ]
                 , p [ class "text-white text-sm" ] [ text "tel: 0120-41-1578" ]
                 , p [ class "text-sm font-thin text-white" ] [ text "Copyright © Office IKO Co. All Rigts Reserved." ]
-                , button [ class "absolute bottom-[16px] right-[10px] " ]
+                , a [ class "absolute bottom-[32px] right-[10px] ", A.href (UrlPath.toRelative path) ]
                     [ div [ class "border rouned border-white p-2 flex items-center justify-center h-12 w-12 text-2xl text-white font-thin" ]
                         [ text "⇧" ]
                     ]
