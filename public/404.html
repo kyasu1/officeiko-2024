@@ -18,8 +18,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ページが見つかりません</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              iko: {
+                500: "#30651A",
+              },
+            },
+          },
+        },
+      };
+    </script>
   </head>
-  <body>
+  <body class="min-h-screen flex flex-col">
     <nav class="print:hidden print:bg-white">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="flex h-16 justify-between">
@@ -65,7 +78,7 @@
             </div>
           </div>
           <div
-            class="flex flex-col items-center justify-center text-sm leading-tight"
+            class="flex flex-col items-center justify-center text-sm leading-tight h-full"
           >
             <div class="text-gray-800">048-987-1020</div>
             <div class="text-gray-800">Open 10am-7pm</div>
@@ -116,10 +129,81 @@
         </div>
       </div>
     </nav>
-    <h1
-      class="text-4xl font-bold flex items-center justify-center h-screen w-full"
+    <main
+      class="flex-1 flex flex-col items-center justify-center w-full space-y-2 bg-gray-100"
     >
-      ページが見つかりません。
-    </h1>
+      <h1 class="text-4xl font-bold">ページが見つかりません。</h1>
+      <p>質イコー Western Union - IKO Pawnshop</p>
+    </main>
+
+    <footer
+      class="px-6 py-14 md:pt-[20px] md:pb-[40px] bg-iko-500 mt-10 print:mt-0 print:hidden"
+    >
+      <div class="md:max-w-[1120px] m-auto w-full">
+        <div class="flex flex-row md:flex-col">
+          <div>
+            <ul
+              class="flex flex-col md:flex-row text-sm text-white font-medium"
+            >
+              <li class="px-4 py-2">
+                <a href="/posts" elm-pages:prefetch="">ニュース</a>
+              </li>
+            </ul>
+            <ul
+              class="flex flex-col md:flex-row text-sm text-white font-medium"
+            >
+              <li class="px-4 py-2">
+                <a href="/pawn" elm-pages:prefetch="">質入・融資</a>
+              </li>
+              <li class="px-4 py-2">
+                <a href="/calendar" elm-pages:prefetch="">取扱商品</a>
+              </li>
+              <li class="px-4 py-2">
+                <a href="/stocks" elm-pages:prefetch="">金プラ相場</a>
+              </li>
+              <li class="px-4 py-2">
+                <a href="/kaitori-ticket" elm-pages:prefetch="">金券買取</a>
+              </li>
+              <li class="px-4 py-2">
+                <a href="/western-union" elm-pages:prefetch="">WU</a>
+              </li>
+            </ul>
+          </div>
+          <ul class="flex flex-col md:flex-row text-sm text-gray-300">
+            <li class="px-4 py-2">
+              <a href="/calendar" elm-pages:prefetch="">カレンダー</a>
+            </li>
+            <li class="px-4 py-2">
+              <a href="/calendar" elm-pages:prefetch="">アクセス</a>
+            </li>
+            <li class="px-4 py-2">
+              <a href="/privacy" elm-pages:prefetch="">プリバシーポリシー</a>
+            </li>
+            <li class="px-4 py-2">
+              <a href="/about" elm-pages:prefetch="">会社概要</a>
+            </li>
+          </ul>
+        </div>
+        <hr class="border-gray-500 my-9 md:my-[20px]" />
+        <div class="text-center leading-loose relative">
+          <a href="/about" elm-pages:prefetch="" class="text-white"
+            >株式会社オフイスイコー</a
+          >
+          <p class="text-white text-sm">OPEN 10AM - 7PM</p>
+          <p class="text-white text-sm">Western Union 6:30PM</p>
+          <p class="text-white text-sm">tel: 0120-41-1578</p>
+          <p class="text-sm font-thin text-white">
+            Copyright © Office IKO Co. All Rigts Reserved.
+          </p>
+          <a class="absolute bottom-[32px] right-[10px]" href=""
+            ><div
+              class="border rouned border-white p-2 flex items-center justify-center h-12 w-12 text-2xl text-white font-thin"
+            >
+              ⇧
+            </div></a
+          >
+        </div>
+      </div>
+    </footer>
   </body>
 </html>
