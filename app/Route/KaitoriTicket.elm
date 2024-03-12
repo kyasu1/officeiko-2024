@@ -10,11 +10,13 @@ import BackendTask
 import FatalError exposing (FatalError)
 import Head
 import Head.Seo as Seo
-import Layout.KaitoriTicket
+import Layout.KaitoriTicket exposing (TicketFile)
+import Pages.Url
 import PagesMsg exposing (PagesMsg)
 import RouteBuilder exposing (App, StatelessRoute)
 import Settings
 import Shared
+import UrlPath exposing (UrlPath)
 import View exposing (View)
 
 
@@ -31,7 +33,7 @@ type alias RouteParams =
 
 
 type alias Data =
-    {}
+    { file : TicketFile }
 
 
 type alias ActionData =
@@ -49,7 +51,16 @@ route =
 
 data : BackendTask.BackendTask FatalError Data
 data =
-    BackendTask.succeed {}
+    Layout.KaitoriTicket.data |> BackendTask.map Data
+
+
+image : Seo.Image
+image =
+    { url = UrlPath.fromString "/images/item-ticke.png" |> Pages.Url.fromPath
+    , alt = "金券買取のイメージ"
+    , dimensions = Nothing
+    , mimeType = Nothing
+    }
 
 
 head :
@@ -59,7 +70,7 @@ head _ =
     Seo.summary
         { canonicalUrlOverride = Nothing
         , siteName = Settings.title
-        , image = Settings.image
+        , image = image
         , description = Settings.subtitle
         , title = Settings.withSubtitle "金券買取"
         , locale = Settings.locale
@@ -77,7 +88,7 @@ view :
     App Data ActionData RouteParams
     -> Shared.Model
     -> View (PagesMsg Msg)
-view _ _ =
+view app _ =
     { title = Settings.withSubtitle "金券買取"
-    , body = Layout.KaitoriTicket.view
+    , body = Layout.KaitoriTicket.view app.data.file
     }

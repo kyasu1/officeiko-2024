@@ -8,14 +8,12 @@ import Html exposing (..)
 import Html.Attributes as A exposing (class)
 import Layout
 import Market exposing (Market)
-import Pages.Url
 import PagesMsg exposing (PagesMsg)
 import Post exposing (Post)
 import Route
 import RouteBuilder exposing (App, StatelessRoute)
 import Settings
 import Shared
-import UrlPath
 import Utils
 import View exposing (View)
 
@@ -221,7 +219,7 @@ view app shared =
             [ h3 [ class "text-center pb-4 text-2xl font-bold" ] [ text "関連サイト" ]
             , div [ class "grid grid-cols-2 md:grid-cols-4 gap-1" ]
                 [ div [ class "bg-white p-2" ]
-                    [ Layout.externalLink "https://www.zenshichiren.gr.jp/"
+                    [ Layout.externalLink "https://www.zenshichi.gr.jp/"
                         [ img [ A.src "/images/banner-zenshichi@2x.png", A.alt "全国質屋組合連合会" ] [] ]
                     , div [ class "text-sm mt-2 text-center" ] [ text "全国質屋組合連合会" ]
                     ]

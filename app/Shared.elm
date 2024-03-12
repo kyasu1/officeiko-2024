@@ -140,7 +140,7 @@ view :
     -> (Msg -> msg)
     -> View msg
     -> { body : List (Html msg), title : String }
-view sharedData page model toMsg pageView =
+view _ page model toMsg pageView =
     let
         menuClass active =
             if active then
@@ -193,11 +193,12 @@ view sharedData page model toMsg pageView =
                                 [ class "fixed top-0 right-0 z-40 h-full w-full translate-x-full overflow-y-auto overscroll-y-none transition duration-500 peer-checked:translate-x-0"
                                 ]
                                 [ div [ class "float-right min-h-full w-[85%] bg-white px-6 pt-12 shadow-2xl" ]
-                                    [ menu [ class "space-y-2" ]
+                                    [ menu [ class "space-y-4" ]
                                         [ li [] [ Route.link [] [ text "ホーム" ] Route.Index ]
                                         , li [] [ Route.link [] [ text "質入・融資" ] Route.Pawn ]
                                         , li [] [ Route.link [] [ text "買取" ] Route.Selling ]
-                                        , li [] [ Route.link [] [ text "金プラ相場" ] Route.Stocks ]
+                                        , li [] [ Route.link [] [ text "金プラチナ相場" ] Route.Stocks ]
+                                        , li [] [ Route.link [] [ text "金券買取" ] Route.KaitoriTicket ]
                                         , li [] [ Route.link [] [ text "Western Union" ] Route.WesternUnion ]
                                         , li [] [ Route.link [] [ text "Access" ] Route.About ]
                                         , li [] [ Route.link [] [ text "Contact" ] Route.Contact ]
@@ -210,7 +211,7 @@ view sharedData page model toMsg pageView =
                     ]
                 ]
             ]
-        , Html.main_ [ class "bg-gray-50 print:bg-white" ] pageView.body
+        , Html.main_ [ class "bg-gray-50 print:bg-white pb-20" ] pageView.body
         , viewFooter page.path
         ]
     , title = pageView.title
@@ -219,7 +220,7 @@ view sharedData page model toMsg pageView =
 
 viewFooter : UrlPath -> Html msg
 viewFooter path =
-    footer [ class "px-6 py-14 md:pt-[20px] md:pb-[40px] bg-iko-500 mt-10 print:mt-0 print:hidden" ]
+    footer [ class "px-6 py-14 md:pt-[40px] md:pb-[40px] bg-iko-500 print:mt-0 print:hidden" ]
         [ div [ class "md:max-w-[1120px] m-auto w-full" ]
             [ div [ class "flex flex-row md:flex-col" ]
                 [ div []
