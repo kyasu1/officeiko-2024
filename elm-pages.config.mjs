@@ -1,10 +1,9 @@
 import { defineConfig } from "vite";
-import adapter from "elm-pages/adapter/netlify.js";
+// import adapter from "elm-pages/adapter/netlify.js";
 import { ViteWebfontDownload } from "vite-plugin-webfont-dl";
 import redirects from "./redirect.js";
 
 console.log("WHOOOOOOOOOOOOOOA");
-console.log(redirects);
 
 export default {
   vite: defineConfig({
@@ -16,7 +15,7 @@ export default {
     ]
 
   }),
-  adapter,
+  // adapter,
   redirects,
   headTagsTemplate(context) {
     return `
