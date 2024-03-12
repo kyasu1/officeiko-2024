@@ -1,7 +1,7 @@
 import { defineConfig } from "vite";
 // import adapter from "elm-pages/adapter/netlify.js";
 import { ViteWebfontDownload } from "vite-plugin-webfont-dl";
-import redirects from "./redirect.js";
+import adapter from "./redirect.js";
 
 console.log("WHOOOOOOOOOOOOOOA");
 
@@ -15,8 +15,8 @@ export default {
     ]
 
   }),
-  // adapter,
-  redirects,
+  adapter,
+  // redirects,
   headTagsTemplate(context) {
     return `
 <!-- Google tag (gtag.js) -->
