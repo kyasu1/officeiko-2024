@@ -32,10 +32,12 @@ view =
         , Layout.section [ class "py-4" ]
             [ h3 [ class "text-center font-bold text-lg" ] [ text "LOCATION" ]
             , div [ class "text-center text-sm md:text-base bg-gray-200 p-2 " ]
-                [ text "Google Maps is your friend! "
-                , text "Open this "
-                , Layout.externalLink "https://maps.app.goo.gl/GuHagUvSGzJ1qvaU8" [ text "LINK" ]
-                , text " for more details."
+                [ div [] [ text "Google Maps is your friend! " ]
+                , div []
+                    [ text "Open this "
+                    , Layout.externalLink "https://maps.app.goo.gl/GuHagUvSGzJ1qvaU8" [ text "LINK" ]
+                    , text " for more details."
+                    ]
                 ]
             ]
         , Layout.section [ class "space-y-4 leading-loose" ]
