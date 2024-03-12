@@ -163,7 +163,7 @@ view sharedData page model toMsg pageView =
                             , Route.link [ menuClass (page.route == Just Route.Stocks) ] [ text "金プラ相場" ] Route.Stocks
                             , Route.link [ menuClass (page.route == Just Route.WesternUnion) ] [ text "Western Union" ] Route.WesternUnion
                             , Route.link [ menuClass (page.route == Just Route.Contact) ] [ text "Contact" ] Route.Contact
-                            , a [ menuClass False, A.href "/#access" ] [ text "Access" ]
+                            , a [ menuClass False, A.href "/access" ] [ text "Access" ]
                             ]
                         ]
                     , div [ class "flex flex-col items-center justify-center text-sm leading-tight" ]
