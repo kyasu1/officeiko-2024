@@ -156,7 +156,7 @@ view =
                             ]
                         ]
                     , div [ class "py-4" ]
-                        [ div [ class "font-thin text-sm" ] [ text "マイナンバー確認書類とは下記のいずれかを指します" ]
+                        [ div [ class "text-sm" ] [ text "マイナンバー確認書類とは下記のいずれかを指します" ]
                         , ul [ class "list-disc ml-8 text-sm" ]
                             [ li [] [ text "マイナンバーカード" ]
                             , li [] [ text "マイナンバー通知カード（紙製）" ]
@@ -185,6 +185,22 @@ view =
                     , text "名前の訂正が必要な場合、当店まで再度お越し頂く必要があります。電話では受付できません。"
                     , text "手続が完了すると10分後に受取が可能となります。"
                     ]
+                , div [ class "py-4" ]
+                    [ text "初めての場合、下記のメモ用紙を事前にご準備いただくとスムーズです。"
+                    , div [ class "py-4 flex justify-center" ] [ img [ A.src "/images/wu_memo_send.png" ] [] ]
+                    , div []
+                        [ text "メモ用紙のPDFファイルは"
+                        , Layout.externalLink "/assets/wu-memo.pdf" [ text "こちら" ]
+                        , text "からダウンロードできます。"
+                        ]
+                    ]
+                , div [ class "py-4" ]
+                    [ div []
+                        [ text "送金が完了しますと、下記のような控えが発行されます。赤く囲ったMTCNと記載された番号を受取人様に伝えてください。"
+                        , text "ほとんどの方はLINE等で写メを送っているようです。"
+                        ]
+                    , div [ class "py-4 flex justify-center" ] [ img [ A.src "/images/mtcn_sample.png" ] [] ]
+                    ]
                 , let
                     th =
                         class "p-2 text-white text-center"
@@ -195,7 +211,7 @@ view =
                   --   div [ class "flex flex-col lg:flex-row p-4 space-y-4 lg:space-y-0 lg:space-x-4" ]
                   div [ A.id "feeTable", class "grid grid-cols-1 lg:grid-cols-2 gap-4" ]
                     [ h4 [ class "text-center text-sm md:text-base lg:col-span-2" ]
-                        [ text "送金に関わる手数料は下記のとおりとなります。"
+                        [ text "送金手数料は下記のとおりとなります。"
                         ]
                     , div [ class "w-full" ]
                         [ div [ class "grid grid-cols-2 gap-px bg-gray-900 border border-gray-900" ]
@@ -250,6 +266,15 @@ view =
                     [ text "相手から受け取った10桁のMTCN番号と上記の本人確認書類をご用意のうえでご来店ください。"
                     , text "システムに登録されたお客様の氏名と本人確認書類を照合いたします。"
                     , text "手続きが完了すると、現金でお支払いいたします。"
+                    ]
+                , div [ class "py-4" ]
+                    [ text "初めての場合、下記のメモ用紙を事前にご準備いただくとスムーズです。"
+                    , div [ class "py-4 flex justify-center" ] [ img [ A.src "/images/wu_memo_recv.png" ] [] ]
+                    , div []
+                        [ text "メモ用紙のPDFファイルは"
+                        , Layout.externalLink "/assets/wu-memo.pdf" [ text "こちら" ]
+                        , text "からダウンロードできます。"
+                        ]
                     ]
                 , p [ class "text-center py-4" ] [ iconError ]
                 , div []
