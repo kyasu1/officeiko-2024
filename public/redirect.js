@@ -57,28 +57,23 @@ export default async function run({
         })
         .join("\n");
 
-    //     const redirectsFile =
-    //         routePatterns
-    //             .filter(isServerSide)
-    //             .map((route) => {
-    //                 if (route.kind === "prerender-with-fallback") {
-    //                     return `${route.pathPattern} /.netlify/builders/render 200
-    // ${route.pathPattern}/content.dat /.netlify/builders/render 200`;
-    //                 } else {
-    //                     return `${route.pathPattern} /.netlify/functions/server-render 200
-    // ${route.pathPattern}/content.dat /.netlify/functions/server-render 200`;
-    //                 }
-    //             })
-    //             .join("\n") +
-    //         "\n" +
-    //         apiRouteRedirects +
-    //         "\n";
-
-    //   fs.writeFileSync("dist/_redirects", redirectsFile);
-
-    console.log("Writing _redirects");
-
-    const redirectsFile = "/* /index.html 200\n";
+    const redirectsFile =
+        routePatterns
+            .filter(isServerSide)
+            .map((route) => {
+                if (route.kind === "prerender-with-fallback") {
+                    return `${route.pathPattern} /.netlify/builders/render 200
+    ${route.pathPattern}/content.dat /.netlify/builders/render 200`;
+                } else {
+                    return `${route.pathPattern} /.netlify/functions/server-render 200
+    ${route.pathPattern}/content.dat /.netlify/functions/server-render 200`;
+                }
+            })
+            .join("\n") +
+        "\n" +
+        apiRouteRedirects +
+        "\n" +
+        "/* /index.html 200\n";
 
     fs.writeFileSync("dist/_redirects", redirectsFile);
 }
