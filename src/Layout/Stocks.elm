@@ -12,7 +12,7 @@ view market =
     , article [ class "max-w-[768px] mx-auto" ]
         [ section [ class "px-2 space-y-4 mb-4" ]
             [ div [ class "text-right pt-4 print:pt-0" ] [ text "更新日：", text <| Market.updated market ]
-            , div [ class "text-sm grid grid-cols-[200px_1fr_1fr] w-full md:max-w-[600px] mx-auto" ]
+            , div [ class "text-sm grid grid-cols-[120px_1fr_1fr] md:grid-cols-[200px_1fr_1fr] w-full md:max-w-[600px] mx-auto" ]
                 [ div [ class "col-span-3 text-center print:hidden" ] [ text "貴金属相場" ]
                 , div [ class "text-center" ] [ text "金" ]
                 , div [ class "text-right pr-2" ] [ text (Market.gdPrice market), text "円（税込み）" ]
@@ -38,9 +38,9 @@ view market =
             ]
         , section [ class "px-2 space-y-4 mb-4 print:hidden" ]
             [ viewCoin market
-            , div [] [ text "その他の金貨も高価買取いたします。お気軽にお問い合わせください。" ]
+            , div [ class "text-sm" ] [ text "その他の金貨も高価買取いたします。お気軽にお問い合わせください。" ]
             , div []
-                [ ul [ class "list-disc text-sm leading-loose" ]
+                [ ul [ class "list-disc text-sm md:leading-loose ml-4" ]
                     [ li []
                         [ text "蛍光X線分析装置がありますので、金歯や刻印の無い品物でもお取り扱い可能でございます。" ]
                     , li
@@ -79,8 +79,8 @@ viewGd rates =
 viewGdRow : Market.Rate -> List (Html msg)
 viewGdRow rate =
     [ div [ outlineGd, class "pl-2 py-1 bg-yellow-400" ] [ text rate.label ]
-    , div [ outlineGd, class "pr-4 py-1 text-right font-medium" ] [ text rate.buyout, text "円" ]
-    , div [ outlineGd, class "pr-4 py-1 text-right font-medium" ] [ text rate.pawn, text "円" ]
+    , div [ outlineGd, class "pr-2 md:pr-4 py-1 text-right font-medium" ] [ text rate.buyout, text "円" ]
+    , div [ outlineGd, class "pr-2 md:pr-4 py-1 text-right font-medium" ] [ text rate.pawn, text "円" ]
     , div [ outlineGd, class "px-2 py-1 text-xs col-span-3" ] [ text rate.note ]
     ]
 
@@ -105,8 +105,8 @@ viewPt rates =
 viewPtRow : Market.Rate -> List (Html msg)
 viewPtRow rate =
     [ div [ outlinePt, class "pl-2 py-1 bg-gray-300" ] [ text rate.label ]
-    , div [ outlinePt, class "pr-4 py-1 text-right font-medium" ] [ text rate.buyout, text "円" ]
-    , div [ outlinePt, class "pr-4 py-1 text-right font-medium" ] [ text rate.pawn, text "円" ]
+    , div [ outlinePt, class "pr-2 md:pr-4 py-1 text-right font-medium" ] [ text rate.buyout, text "円" ]
+    , div [ outlinePt, class "pr-2 md:pr-4 py-1 text-right font-medium" ] [ text rate.pawn, text "円" ]
     , div [ outlinePt, class "px-2 py-1 text-xs col-span-3" ] [ text rate.note ]
     ]
 
@@ -131,8 +131,8 @@ viewSv rates =
 viewSvRow : Market.Rate -> List (Html msg)
 viewSvRow rate =
     [ div [ outlineSv, class "pl-2 py-1 bg-gray-100" ] [ text rate.label ]
-    , div [ outlineSv, class "pr-4 py-1 text-right font-medium" ] [ text rate.buyout, text "円" ]
-    , div [ outlineSv, class "pr-4 py-1 text-right font-medium" ] [ text rate.pawn, text "円" ]
+    , div [ outlineSv, class "pr-2 md:pr-4 py-1 text-right font-medium" ] [ text rate.buyout, text "円" ]
+    , div [ outlineSv, class "pr-2 md:pr-4 py-1 text-right font-medium" ] [ text rate.pawn, text "円" ]
     , div [ outlineSv, class "px-2 py-1 text-xs col-span-3" ] [ text rate.note ]
     ]
 

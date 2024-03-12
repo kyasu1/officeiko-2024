@@ -108,19 +108,19 @@ view : Model -> Html Msg
 view ({ form } as model) =
     div []
         [ Layout.subHeader [ text "お借入シミュレーション" ]
-        , Html.form [ class "grid grid-cols-3 gap-4 items-end p-4" ]
+        , Html.form [ class "grid grid-cols-3 gap-1 md:gap-4 items-end justify-center py-4" ]
             [ div [ class "flex flex-col" ]
-                [ label [] [ text "お借入予定日" ]
+                [ label [ class "text-sm md:text-base" ] [ text "お借入予定日" ]
                 , input
                     [ A.type_ "date"
                     , A.value (Date.toIsoString form.date)
                     , E.onChange (\s -> ChangedForm { form | date = Date.fromIsoString s |> Result.withDefault (Date.fromRataDie 0) })
-                    , class "border border-gray-400 focus:ring-1 p-2"
+                    , class "border border-gray-400 p-2 text-sm"
                     ]
                     []
                 ]
             , div [ class "flex flex-col" ]
-                [ label [] [ text "お借入金額" ]
+                [ label [ class "text-sm md:text-base" ] [ text "お借入金額" ]
                 , div [ class "flex items-center" ]
                     [ input
                         [ A.value model.form.amount
@@ -134,58 +134,69 @@ view ({ form } as model) =
 
                         -- , A.required True
                         , E.onChange (\s -> ChangedForm { form | amount = s })
-                        , class "border border-gray-400 focus:ring-1 p-2 w-full text-right"
+                        , class "border border-gray-400 focus:ring-1 p-2 w-full text-right text-sm "
                         ]
                         []
-                    , span [ class "ml-2" ] [ text "円" ]
+                    , span [ class "ml-1 md:ml-2" ] [ text "円" ]
                     ]
                 ]
             , div []
-                [ button
-                    [ A.type_ "submit"
-                    , class "w-24 px-2 py-1 border border-gray-800 rounded text-sm font-bold mb-2"
-                    , E.onClickPreventDefault ClickedSubmit
+                [ div []
+                    [ button
+                        [ A.type_ "submit"
+                        , class "w-24 px-2 py-1 border border-gray-800 rounded text-sm font-bold mb-1"
+                        , E.onClickPreventDefault ClickedSubmit
+                        ]
+                        [ text "試算する" ]
                     ]
-                    [ text "試算する" ]
                 ]
             ]
         , div [ class "mt-4 border rounded p-4" ]
             [ case model.contract of
                 Just contract ->
-                    div [ class "grid grid-cols-3 gap-4 text-sm items-end" ]
-                        [ div [ class "mb-1 text-right" ]
-                            [ text "1ヶ月あたりの質料"
+                    div [ class "grid grid-cols-3 gap-2 md:gap-4 text-sm items-end" ]
+                        [ div [ class "mb-2 text-center" ]
+                            [ text "1ヶ月毎の質料"
                             ]
-                        , div [ class "border border-gray-400 p-1 h-8 text-right bg-gray-100" ]
+                        , div [ class "border border-gray-400 px-2 py-2 text-right bg-gray-100" ]
                             [ text
                                 (contract.interest |> Decimal.truncate 0 |> Utils.toPrice)
                             , text "円"
                             ]
-                        , div [ class "mb-1" ]
+                        , div [ class "mb-2 text-center" ]
                             [ text "利率 "
                             , text (Decimal.toString (Decimal.mul (Decimal.fromInt 100) contract.rate))
                             , text "%"
                             ]
-                        , div [ class "col-span-3" ] [ text "返済総額" ]
+                        , div [ class "col-span-3 font-bold" ] [ text "返済総額" ]
                         , div [ class "flex flex-col" ]
-                            [ label [ class "text-xs md:text-sm" ] [ text (dueDate 1 contract.contractDate |> Utils.kanjiDate), text "まで" ]
-                            , div [ class "border border-gray-400 p-1 h-8 text-right bg-gray-100" ]
+                            [ label [ class "text-xs md:text-sm" ]
+                                [ text (dueDate 1 contract.contractDate |> Utils.kanjiDate)
+                                , text "迄"
+                                ]
+                            , div [ class "border border-gray-400 px-2 py-2 text-right bg-gray-100" ]
                                 [ text
                                     (totalWithdraw 1 contract |> Utils.toPrice)
                                 , text "円"
                                 ]
                             ]
                         , div [ class "flex flex-col" ]
-                            [ label [ class "text-xs md:text-sm" ] [ text (dueDate 2 contract.contractDate |> Utils.kanjiDate), text "まで" ]
-                            , div [ class "border border-gray-400 p-1 h-8 text-right bg-gray-100" ]
+                            [ label [ class "text-xs md:text-sm" ]
+                                [ text (dueDate 2 contract.contractDate |> Utils.kanjiDate)
+                                , text "迄"
+                                ]
+                            , div [ class "border border-gray-400 px-2 py-2 text-right bg-gray-100" ]
                                 [ text
                                     (totalWithdraw 2 contract |> Utils.toPrice)
                                 , text "円"
                                 ]
                             ]
                         , div [ class "flex flex-col" ]
-                            [ label [ class "text-xs md:text-sm" ] [ text (dueDate 3 contract.contractDate |> Utils.kanjiDate), text "まで" ]
-                            , div [ class "border border-gray-400 p-1 h-8 text-right bg-gray-100" ]
+                            [ label [ class "text-xs md:text-sm" ]
+                                [ text (dueDate 3 contract.contractDate |> Utils.kanjiDate)
+                                , text "迄"
+                                ]
+                            , div [ class "border border-gray-400 px-2 py-2 ring-inset text-right bg-gray-100" ]
                                 [ text
                                     (totalWithdraw 3 contract |> Utils.toPrice)
                                 , text "円"
