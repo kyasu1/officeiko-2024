@@ -73,7 +73,7 @@ export default async function run({
         "\n" +
         apiRouteRedirects +
         "\n" +
-        "/* /index.html 200\n";
+        "/* /404.html 404\n";
 
     fs.writeFileSync("dist/_redirects", redirectsFile);
 }
