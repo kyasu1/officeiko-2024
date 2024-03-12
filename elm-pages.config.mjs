@@ -1,5 +1,5 @@
 import { defineConfig } from "vite";
-// import adapter from "elm-pages/adapter/netlify.js";
+import adapter from "elm-pages/adapter/netlify.js";
 import { ViteWebfontDownload } from "vite-plugin-webfont-dl";
 
 export default {
@@ -12,7 +12,7 @@ export default {
     ]
 
   }),
-  // adapter,
+  adapter,
   headTagsTemplate(context) {
     return `
 <!-- Google tag (gtag.js) -->
