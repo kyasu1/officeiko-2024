@@ -1,9 +1,7 @@
 import { defineConfig } from "vite";
 // import adapter from "elm-pages/adapter/netlify.js";
+import adapter from "./adapters/netlify/netlify.mjs";
 import { ViteWebfontDownload } from "vite-plugin-webfont-dl";
-import adapter from "./redirect.js";
-
-console.log("WHOOOOOOOOOOOOOOA");
 
 export default {
   vite: defineConfig({
@@ -16,7 +14,6 @@ export default {
 
   }),
   adapter,
-  // redirects,
   headTagsTemplate(context) {
     return `
 <!-- Google tag (gtag.js) -->
