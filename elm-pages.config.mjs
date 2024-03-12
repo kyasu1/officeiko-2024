@@ -1,6 +1,6 @@
 import { defineConfig } from "vite";
-// import adapter from "elm-pages/adapter/netlify.js";
-import adapter from "./adapters/netlify/netlify.mjs";
+import adapter from "elm-pages/adapter/netlify.js";
+// import adapter from "./adapters/netlify/netlify.mjs";
 import { ViteWebfontDownload } from "vite-plugin-webfont-dl";
 
 export default {
