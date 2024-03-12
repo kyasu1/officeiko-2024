@@ -42,12 +42,12 @@ type alias Internal =
 decoder : JD.Decoder Market
 decoder =
     JD.map6 Internal
-        (JD.field "timestamp" Iso8601.decoder)
+        (JD.field "date" Iso8601.decoder)
         (JD.field "gd" JD.int |> JD.map Decimal.fromInt)
-        (JD.field "gd_diff" JD.int |> JD.map Decimal.fromInt)
+        (JD.field "gd_ratio" JD.int |> JD.map Decimal.fromInt)
         (JD.field "pt" JD.int |> JD.map Decimal.fromInt)
-        (JD.field "pt_diff" JD.int |> JD.map Decimal.fromInt)
-        (JD.succeed (Decimal.fromInt 120))
+        (JD.field "pt_ratio" JD.int |> JD.map Decimal.fromInt)
+        (JD.field "sv" JD.int |> JD.map Decimal.fromInt)
         |> JD.map Market
 
 
