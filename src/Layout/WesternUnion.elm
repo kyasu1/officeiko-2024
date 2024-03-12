@@ -40,6 +40,15 @@ view =
                     ]
                 ]
             ]
+        , Layout.section [ class "py-4" ]
+            [ h3 [ class "text-center font-bold text-lg" ] [ text "TIME" ]
+            , div [ class "text-center text-sm md:text-base bg-gray-200 p-2 " ]
+                [ div [] [ text "Accept Until 6:30PM!" ]
+                , div []
+                    [ text "ウエスタンユニオンの受付は午後6:30迄です。"
+                    ]
+                ]
+            ]
         , Layout.section [ class "space-y-4 leading-loose" ]
             [ p []
                 [ iconInfo
