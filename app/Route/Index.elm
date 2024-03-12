@@ -13,6 +13,7 @@ import PagesMsg exposing (PagesMsg)
 import Post exposing (Post)
 import Route
 import RouteBuilder exposing (App, StatelessRoute)
+import Settings
 import Shared
 import UrlPath
 import Utils
@@ -64,12 +65,7 @@ head app =
     Seo.summary
         { canonicalUrlOverride = Nothing
         , siteName = "質イコー Western Union - IKO Pawnshop"
-        , image =
-            { url = [ "images", "logo.svg" ] |> UrlPath.join |> Pages.Url.fromPath
-            , alt = "質イコー Western Unionのロゴ"
-            , dimensions = Nothing
-            , mimeType = Nothing
-            }
+        , image = Settings.image
         , description = "質イコーは国道4号バイパス沿いにあるお店です。イコー買取館の大きな看板が目印。専用駐車場完備でお車でのご来店が便利です。初めての方や女性にも安心してご利用いただける親切な対応を心がけています。ブランド …"
         , locale = Nothing
         , title = "越谷市の質屋 質イコー イコー買取館 ブランド品 金 プラチナ ロレックス 高級時計 金券 - 越谷市,草加市,川口市,春日部市,八潮市,吉川市 "

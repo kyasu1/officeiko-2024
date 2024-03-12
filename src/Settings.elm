@@ -36,7 +36,7 @@ subtitle =
 
 image : Seo.Image
 image =
-    { url = UrlPath.fromString "/logo.png" |> Pages.Url.fromPath
+    { url = UrlPath.fromString "/images/logo.png" |> Pages.Url.fromPath
     , alt = "株式会社オフイスイコーのロゴ"
     , dimensions = Nothing
     , mimeType = Nothing
