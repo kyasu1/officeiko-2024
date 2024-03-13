@@ -1,7 +1,7 @@
-module Gen.Utils exposing (call_, kanjiDate, moduleName_, posixToKanji, toDiff, toPrice, values_)
+module Gen.Utils exposing (call_, dateDecoder, kanjiDate, moduleName_, posixToDate, posixToKanji, toDiff, toPrice, values_, zone)
 
 {-| 
-@docs moduleName_, toDiff, toPrice, posixToKanji, kanjiDate, call_, values_
+@docs moduleName_, toDiff, toPrice, dateDecoder, posixToKanji, kanjiDate, posixToDate, zone, call_, values_
 -}
 
 
@@ -51,6 +51,22 @@ toPrice toPriceArg =
         [ toPriceArg ]
 
 
+{-| dateDecoder: Json.Decode.Decoder Date.Date -}
+dateDecoder : Elm.Expression
+dateDecoder =
+    Elm.value
+        { importFrom = [ "Utils" ]
+        , name = "dateDecoder"
+        , annotation =
+            Just
+                (Type.namedWith
+                    [ "Json", "Decode" ]
+                    "Decoder"
+                    [ Type.namedWith [ "Date" ] "Date" [] ]
+                )
+        }
+
+
 {-| posixToKanji: Time.Posix -> String -}
 posixToKanji : Elm.Expression -> Elm.Expression
 posixToKanji posixToKanjiArg =
@@ -87,11 +103,40 @@ kanjiDate kanjiDateArg =
         [ kanjiDateArg ]
 
 
+{-| posixToDate: Time.Posix -> Date.Date -}
+posixToDate : Elm.Expression -> Elm.Expression
+posixToDate posixToDateArg =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "Utils" ]
+            , name = "posixToDate"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [ "Time" ] "Posix" [] ]
+                        (Type.namedWith [ "Date" ] "Date" [])
+                    )
+            }
+        )
+        [ posixToDateArg ]
+
+
+{-| zone: Time.Extra.Zone -}
+zone : Elm.Expression
+zone =
+    Elm.value
+        { importFrom = [ "Utils" ]
+        , name = "zone"
+        , annotation = Just (Type.namedWith [ "Time", "Extra" ] "Zone" [])
+        }
+
+
 call_ :
     { toDiff : Elm.Expression -> Elm.Expression
     , toPrice : Elm.Expression -> Elm.Expression
     , posixToKanji : Elm.Expression -> Elm.Expression
     , kanjiDate : Elm.Expression -> Elm.Expression
+    , posixToDate : Elm.Expression -> Elm.Expression
     }
 call_ =
     { toDiff =
@@ -154,14 +199,32 @@ call_ =
                     }
                 )
                 [ kanjiDateArg ]
+    , posixToDate =
+        \posixToDateArg ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "Utils" ]
+                    , name = "posixToDate"
+                    , annotation =
+                        Just
+                            (Type.function
+                                [ Type.namedWith [ "Time" ] "Posix" [] ]
+                                (Type.namedWith [ "Date" ] "Date" [])
+                            )
+                    }
+                )
+                [ posixToDateArg ]
     }
 
 
 values_ :
     { toDiff : Elm.Expression
     , toPrice : Elm.Expression
+    , dateDecoder : Elm.Expression
     , posixToKanji : Elm.Expression
     , kanjiDate : Elm.Expression
+    , posixToDate : Elm.Expression
+    , zone : Elm.Expression
     }
 values_ =
     { toDiff =
@@ -186,6 +249,18 @@ values_ =
                         Type.string
                     )
             }
+    , dateDecoder =
+        Elm.value
+            { importFrom = [ "Utils" ]
+            , name = "dateDecoder"
+            , annotation =
+                Just
+                    (Type.namedWith
+                        [ "Json", "Decode" ]
+                        "Decoder"
+                        [ Type.namedWith [ "Date" ] "Date" [] ]
+                    )
+            }
     , posixToKanji =
         Elm.value
             { importFrom = [ "Utils" ]
@@ -207,5 +282,22 @@ values_ =
                         [ Type.namedWith [ "Date" ] "Date" [] ]
                         Type.string
                     )
+            }
+    , posixToDate =
+        Elm.value
+            { importFrom = [ "Utils" ]
+            , name = "posixToDate"
+            , annotation =
+                Just
+                    (Type.function
+                        [ Type.namedWith [ "Time" ] "Posix" [] ]
+                        (Type.namedWith [ "Date" ] "Date" [])
+                    )
+            }
+    , zone =
+        Elm.value
+            { importFrom = [ "Utils" ]
+            , name = "zone"
+            , annotation = Just (Type.namedWith [ "Time", "Extra" ] "Zone" [])
             }
     }

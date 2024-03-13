@@ -48,7 +48,11 @@ annotation_ =
             moduleName_
             "Model"
             []
-            (Type.record [ ( "showMenu", Type.bool ) ])
+            (Type.record
+                [ ( "showMenu", Type.bool )
+                , ( "date", Type.namedWith [ "Date" ] "Date" [] )
+                ]
+            )
     , data =
         Type.alias
             moduleName_
@@ -63,7 +67,8 @@ annotation_ =
 
 
 make_ :
-    { model : { showMenu : Elm.Expression } -> Elm.Expression
+    { model :
+        { showMenu : Elm.Expression, date : Elm.Expression } -> Elm.Expression
     , data : { market : Elm.Expression } -> Elm.Expression
     , noOp : Elm.Expression
     , sharedMsg : Elm.Expression -> Elm.Expression
@@ -77,9 +82,17 @@ make_ =
                     [ "Shared" ]
                     "Model"
                     []
-                    (Type.record [ ( "showMenu", Type.bool ) ])
+                    (Type.record
+                        [ ( "showMenu", Type.bool )
+                        , ( "date", Type.namedWith [ "Date" ] "Date" [] )
+                        ]
+                    )
                 )
-                (Elm.record [ Tuple.pair "showMenu" model_args.showMenu ])
+                (Elm.record
+                    [ Tuple.pair "showMenu" model_args.showMenu
+                    , Tuple.pair "date" model_args.date
+                    ]
+                )
     , data =
         \data_args ->
             Elm.withType

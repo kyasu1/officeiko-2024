@@ -1,7 +1,7 @@
-module Gen.Settings exposing (canonicalUrl, image, locale, moduleName_, subtitle, title, values_)
+module Gen.Settings exposing (call_, canonicalUrl, image, locale, moduleName_, subtitle, title, values_, withSubtitle)
 
 {-| 
-@docs moduleName_, image, subtitle, title, locale, canonicalUrl, values_
+@docs moduleName_, image, subtitle, withSubtitle, title, locale, canonicalUrl, call_, values_
 -}
 
 
@@ -33,6 +33,19 @@ subtitle =
         , name = "subtitle"
         , annotation = Just Type.string
         }
+
+
+{-| withSubtitle: String -> String -}
+withSubtitle : String -> Elm.Expression
+withSubtitle withSubtitleArg =
+    Elm.apply
+        (Elm.value
+            { importFrom = [ "Settings" ]
+            , name = "withSubtitle"
+            , annotation = Just (Type.function [ Type.string ] Type.string)
+            }
+        )
+        [ Elm.string withSubtitleArg ]
 
 
 {-| title: String -}
@@ -76,9 +89,26 @@ canonicalUrl =
         }
 
 
+call_ : { withSubtitle : Elm.Expression -> Elm.Expression }
+call_ =
+    { withSubtitle =
+        \withSubtitleArg ->
+            Elm.apply
+                (Elm.value
+                    { importFrom = [ "Settings" ]
+                    , name = "withSubtitle"
+                    , annotation =
+                        Just (Type.function [ Type.string ] Type.string)
+                    }
+                )
+                [ withSubtitleArg ]
+    }
+
+
 values_ :
     { image : Elm.Expression
     , subtitle : Elm.Expression
+    , withSubtitle : Elm.Expression
     , title : Elm.Expression
     , locale : Elm.Expression
     , canonicalUrl : Elm.Expression
@@ -95,6 +125,12 @@ values_ =
             { importFrom = [ "Settings" ]
             , name = "subtitle"
             , annotation = Just Type.string
+            }
+    , withSubtitle =
+        Elm.value
+            { importFrom = [ "Settings" ]
+            , name = "withSubtitle"
+            , annotation = Just (Type.function [ Type.string ] Type.string)
             }
     , title =
         Elm.value

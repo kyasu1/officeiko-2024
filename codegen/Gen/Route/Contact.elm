@@ -15,7 +15,7 @@ moduleName_ =
     [ "Route", "Contact" ]
 
 
-{-| route: RouteBuilder.StatefulRoute Route.Contact.RouteParams Route.Contact.Data Route.Contact.ActionData Route.Contact.Model Route.Contact.Msg -}
+{-| route: RouteBuilder.StatelessRoute Route.Contact.RouteParams Route.Contact.Data Route.Contact.ActionData -}
 route : Elm.Expression
 route =
     Elm.value
@@ -25,12 +25,10 @@ route =
             Just
                 (Type.namedWith
                     [ "RouteBuilder" ]
-                    "StatefulRoute"
+                    "StatelessRoute"
                     [ Type.namedWith [ "Route", "Contact" ] "RouteParams" []
                     , Type.namedWith [ "Route", "Contact" ] "Data" []
                     , Type.namedWith [ "Route", "Contact" ] "ActionData" []
-                    , Type.namedWith [ "Route", "Contact" ] "Model" []
-                    , Type.namedWith [ "Route", "Contact" ] "Msg" []
                     ]
                 )
         }
@@ -40,15 +38,15 @@ annotation_ :
     { actionData : Type.Annotation
     , data : Type.Annotation
     , routeParams : Type.Annotation
-    , model : Type.Annotation
     , msg : Type.Annotation
+    , model : Type.Annotation
     }
 annotation_ =
     { actionData = Type.alias moduleName_ "ActionData" [] (Type.record [])
     , data = Type.alias moduleName_ "Data" [] (Type.record [])
     , routeParams = Type.alias moduleName_ "RouteParams" [] (Type.record [])
+    , msg = Type.alias moduleName_ "Msg" [] Type.unit
     , model = Type.alias moduleName_ "Model" [] (Type.record [])
-    , msg = Type.namedWith [ "Route", "Contact" ] "Msg" []
     }
 
 
@@ -102,12 +100,10 @@ values_ =
                 Just
                     (Type.namedWith
                         [ "RouteBuilder" ]
-                        "StatefulRoute"
+                        "StatelessRoute"
                         [ Type.namedWith [ "Route", "Contact" ] "RouteParams" []
                         , Type.namedWith [ "Route", "Contact" ] "Data" []
                         , Type.namedWith [ "Route", "Contact" ] "ActionData" []
-                        , Type.namedWith [ "Route", "Contact" ] "Model" []
-                        , Type.namedWith [ "Route", "Contact" ] "Msg" []
                         ]
                     )
             }

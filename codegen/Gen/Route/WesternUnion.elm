@@ -15,7 +15,7 @@ moduleName_ =
     [ "Route", "WesternUnion" ]
 
 
-{-| route: RouteBuilder.StatefulRoute Route.WesternUnion.RouteParams Route.WesternUnion.Data Route.WesternUnion.ActionData Route.WesternUnion.Model Route.WesternUnion.Msg -}
+{-| route: RouteBuilder.StatelessRoute Route.WesternUnion.RouteParams Route.WesternUnion.Data Route.WesternUnion.ActionData -}
 route : Elm.Expression
 route =
     Elm.value
@@ -25,15 +25,13 @@ route =
             Just
                 (Type.namedWith
                     [ "RouteBuilder" ]
-                    "StatefulRoute"
+                    "StatelessRoute"
                     [ Type.namedWith
                         [ "Route", "WesternUnion" ]
                         "RouteParams"
                         []
                     , Type.namedWith [ "Route", "WesternUnion" ] "Data" []
                     , Type.namedWith [ "Route", "WesternUnion" ] "ActionData" []
-                    , Type.namedWith [ "Route", "WesternUnion" ] "Model" []
-                    , Type.namedWith [ "Route", "WesternUnion" ] "Msg" []
                     ]
                 )
         }
@@ -43,15 +41,15 @@ annotation_ :
     { actionData : Type.Annotation
     , data : Type.Annotation
     , routeParams : Type.Annotation
-    , model : Type.Annotation
     , msg : Type.Annotation
+    , model : Type.Annotation
     }
 annotation_ =
     { actionData = Type.alias moduleName_ "ActionData" [] (Type.record [])
     , data = Type.alias moduleName_ "Data" [] (Type.record [])
     , routeParams = Type.alias moduleName_ "RouteParams" [] (Type.record [])
+    , msg = Type.alias moduleName_ "Msg" [] Type.unit
     , model = Type.alias moduleName_ "Model" [] (Type.record [])
-    , msg = Type.namedWith [ "Route", "WesternUnion" ] "Msg" []
     }
 
 
@@ -115,7 +113,7 @@ values_ =
                 Just
                     (Type.namedWith
                         [ "RouteBuilder" ]
-                        "StatefulRoute"
+                        "StatelessRoute"
                         [ Type.namedWith
                             [ "Route", "WesternUnion" ]
                             "RouteParams"
@@ -125,8 +123,6 @@ values_ =
                             [ "Route", "WesternUnion" ]
                             "ActionData"
                             []
-                        , Type.namedWith [ "Route", "WesternUnion" ] "Model" []
-                        , Type.namedWith [ "Route", "WesternUnion" ] "Msg" []
                         ]
                     )
             }

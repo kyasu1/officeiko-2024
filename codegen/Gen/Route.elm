@@ -264,13 +264,15 @@ annotation_ =
 
 
 make_ :
-    { blog__Slug_ : Elm.Expression -> Elm.Expression
-    , news__Slug_ : Elm.Expression -> Elm.Expression
+    { post__Slug_ : Elm.Expression -> Elm.Expression
+    , about : Elm.Expression
     , calendar : Elm.Expression
     , contact : Elm.Expression
-    , greet : Elm.Expression
-    , hello : Elm.Expression
+    , faq : Elm.Expression
+    , kaitoriTicket : Elm.Expression
+    , line : Elm.Expression
     , pawn : Elm.Expression
+    , posts : Elm.Expression
     , privacy : Elm.Expression
     , selling : Elm.Expression
     , stocks : Elm.Expression
@@ -279,26 +281,22 @@ make_ :
     , index : Elm.Expression
     }
 make_ =
-    { blog__Slug_ =
+    { post__Slug_ =
         \ar0 ->
             Elm.apply
                 (Elm.value
                     { importFrom = [ "Route" ]
-                    , name = "Blog__Slug_"
+                    , name = "Post__Slug_"
                     , annotation = Just (Type.namedWith [] "Route" [])
                     }
                 )
                 [ ar0 ]
-    , news__Slug_ =
-        \ar0 ->
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "Route" ]
-                    , name = "News__Slug_"
-                    , annotation = Just (Type.namedWith [] "Route" [])
-                    }
-                )
-                [ ar0 ]
+    , about =
+        Elm.value
+            { importFrom = [ "Route" ]
+            , name = "About"
+            , annotation = Just (Type.namedWith [] "Route" [])
+            }
     , calendar =
         Elm.value
             { importFrom = [ "Route" ]
@@ -311,22 +309,34 @@ make_ =
             , name = "Contact"
             , annotation = Just (Type.namedWith [] "Route" [])
             }
-    , greet =
+    , faq =
         Elm.value
             { importFrom = [ "Route" ]
-            , name = "Greet"
+            , name = "Faq"
             , annotation = Just (Type.namedWith [] "Route" [])
             }
-    , hello =
+    , kaitoriTicket =
         Elm.value
             { importFrom = [ "Route" ]
-            , name = "Hello"
+            , name = "KaitoriTicket"
+            , annotation = Just (Type.namedWith [] "Route" [])
+            }
+    , line =
+        Elm.value
+            { importFrom = [ "Route" ]
+            , name = "Line"
             , annotation = Just (Type.namedWith [] "Route" [])
             }
     , pawn =
         Elm.value
             { importFrom = [ "Route" ]
             , name = "Pawn"
+            , annotation = Just (Type.namedWith [] "Route" [])
+            }
+    , posts =
+        Elm.value
+            { importFrom = [ "Route" ]
+            , name = "Posts"
             , annotation = Just (Type.namedWith [] "Route" [])
             }
     , privacy =
@@ -372,13 +382,15 @@ caseOf_ :
     { route :
         Elm.Expression
         -> { routeTags_0_0
-            | blog__Slug_ : Elm.Expression -> Elm.Expression
-            , news__Slug_ : Elm.Expression -> Elm.Expression
+            | post__Slug_ : Elm.Expression -> Elm.Expression
+            , about : Elm.Expression
             , calendar : Elm.Expression
             , contact : Elm.Expression
-            , greet : Elm.Expression
-            , hello : Elm.Expression
+            , faq : Elm.Expression
+            , kaitoriTicket : Elm.Expression
+            , line : Elm.Expression
             , pawn : Elm.Expression
+            , posts : Elm.Expression
             , privacy : Elm.Expression
             , selling : Elm.Expression
             , stocks : Elm.Expression
@@ -395,18 +407,17 @@ caseOf_ =
                 routeExpression
                 (Type.namedWith [ "Route" ] "Route" [])
                 [ Elm.Case.branch1
-                    "Blog__Slug_"
+                    "Post__Slug_"
                     ( "one", Type.record [ ( "slug", Type.string ) ] )
-                    routeTags.blog__Slug_
-                , Elm.Case.branch1
-                    "News__Slug_"
-                    ( "one", Type.record [ ( "slug", Type.string ) ] )
-                    routeTags.news__Slug_
+                    routeTags.post__Slug_
+                , Elm.Case.branch0 "About" routeTags.about
                 , Elm.Case.branch0 "Calendar" routeTags.calendar
                 , Elm.Case.branch0 "Contact" routeTags.contact
-                , Elm.Case.branch0 "Greet" routeTags.greet
-                , Elm.Case.branch0 "Hello" routeTags.hello
+                , Elm.Case.branch0 "Faq" routeTags.faq
+                , Elm.Case.branch0 "KaitoriTicket" routeTags.kaitoriTicket
+                , Elm.Case.branch0 "Line" routeTags.line
                 , Elm.Case.branch0 "Pawn" routeTags.pawn
+                , Elm.Case.branch0 "Posts" routeTags.posts
                 , Elm.Case.branch0 "Privacy" routeTags.privacy
                 , Elm.Case.branch0 "Selling" routeTags.selling
                 , Elm.Case.branch0 "Stocks" routeTags.stocks

@@ -1,4 +1,4 @@
-module Gen.Route.Tokutei exposing (annotation_, make_, moduleName_, route, values_)
+module Gen.Route.Posts exposing (annotation_, make_, moduleName_, route, values_)
 
 {-| 
 @docs moduleName_, route, annotation_, make_, values_
@@ -12,23 +12,23 @@ import Elm.Annotation as Type
 {-| The name of this module. -}
 moduleName_ : List String
 moduleName_ =
-    [ "Route", "Tokutei" ]
+    [ "Route", "Posts" ]
 
 
-{-| route: RouteBuilder.StatelessRoute Route.Tokutei.RouteParams Route.Tokutei.Data Route.Tokutei.ActionData -}
+{-| route: RouteBuilder.StatelessRoute Route.Posts.RouteParams Route.Posts.Data Route.Posts.ActionData -}
 route : Elm.Expression
 route =
     Elm.value
-        { importFrom = [ "Route", "Tokutei" ]
+        { importFrom = [ "Route", "Posts" ]
         , name = "route"
         , annotation =
             Just
                 (Type.namedWith
                     [ "RouteBuilder" ]
                     "StatelessRoute"
-                    [ Type.namedWith [ "Route", "Tokutei" ] "RouteParams" []
-                    , Type.namedWith [ "Route", "Tokutei" ] "Data" []
-                    , Type.namedWith [ "Route", "Tokutei" ] "ActionData" []
+                    [ Type.namedWith [ "Route", "Posts" ] "RouteParams" []
+                    , Type.namedWith [ "Route", "Posts" ] "Data" []
+                    , Type.namedWith [ "Route", "Posts" ] "ActionData" []
                     ]
                 )
         }
@@ -49,10 +49,7 @@ annotation_ =
             "Data"
             []
             (Type.record
-                [ ( "privacy"
-                  , Type.namedWith [ "Layout", "Privacy" ] "Privacy" []
-                  )
-                ]
+                [ ( "posts", Type.list (Type.namedWith [ "Post" ] "Post" []) ) ]
             )
     , routeParams = Type.alias moduleName_ "RouteParams" [] (Type.record [])
     , msg = Type.alias moduleName_ "Msg" [] Type.unit
@@ -62,7 +59,7 @@ annotation_ =
 
 make_ :
     { actionData : actionData -> Elm.Expression
-    , data : { privacy : Elm.Expression } -> Elm.Expression
+    , data : { posts : Elm.Expression } -> Elm.Expression
     , routeParams : routeParams -> Elm.Expression
     , model : model -> Elm.Expression
     }
@@ -71,7 +68,7 @@ make_ =
         \actionData_args ->
             Elm.withType
                 (Type.alias
-                    [ "Route", "Tokutei" ]
+                    [ "Route", "Posts" ]
                     "ActionData"
                     []
                     (Type.record [])
@@ -81,22 +78,22 @@ make_ =
         \data_args ->
             Elm.withType
                 (Type.alias
-                    [ "Route", "Tokutei" ]
+                    [ "Route", "Posts" ]
                     "Data"
                     []
                     (Type.record
-                        [ ( "privacy"
-                          , Type.namedWith [ "Layout", "Privacy" ] "Privacy" []
+                        [ ( "posts"
+                          , Type.list (Type.namedWith [ "Post" ] "Post" [])
                           )
                         ]
                     )
                 )
-                (Elm.record [ Tuple.pair "privacy" data_args.privacy ])
+                (Elm.record [ Tuple.pair "posts" data_args.posts ])
     , routeParams =
         \routeParams_args ->
             Elm.withType
                 (Type.alias
-                    [ "Route", "Tokutei" ]
+                    [ "Route", "Posts" ]
                     "RouteParams"
                     []
                     (Type.record [])
@@ -105,7 +102,7 @@ make_ =
     , model =
         \model_args ->
             Elm.withType
-                (Type.alias [ "Route", "Tokutei" ] "Model" [] (Type.record []))
+                (Type.alias [ "Route", "Posts" ] "Model" [] (Type.record []))
                 (Elm.record [])
     }
 
@@ -114,16 +111,16 @@ values_ : { route : Elm.Expression }
 values_ =
     { route =
         Elm.value
-            { importFrom = [ "Route", "Tokutei" ]
+            { importFrom = [ "Route", "Posts" ]
             , name = "route"
             , annotation =
                 Just
                     (Type.namedWith
                         [ "RouteBuilder" ]
                         "StatelessRoute"
-                        [ Type.namedWith [ "Route", "Tokutei" ] "RouteParams" []
-                        , Type.namedWith [ "Route", "Tokutei" ] "Data" []
-                        , Type.namedWith [ "Route", "Tokutei" ] "ActionData" []
+                        [ Type.namedWith [ "Route", "Posts" ] "RouteParams" []
+                        , Type.namedWith [ "Route", "Posts" ] "Data" []
+                        , Type.namedWith [ "Route", "Posts" ] "ActionData" []
                         ]
                     )
             }

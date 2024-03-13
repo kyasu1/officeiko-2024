@@ -47,7 +47,11 @@ annotation_ =
             moduleName_
             "Data"
             []
-            (Type.record [ ( "message", Type.string ) ])
+            (Type.record
+                [ ( "news", Type.list (Type.namedWith [ "Post" ] "Post" []) )
+                , ( "blog", Type.list (Type.namedWith [ "Post" ] "Post" []) )
+                ]
+            )
     , msg = Type.alias moduleName_ "Msg" [] Type.unit
     , model = Type.alias moduleName_ "Model" [] (Type.record [])
     }
@@ -55,7 +59,7 @@ annotation_ =
 
 make_ :
     { actionData : actionData -> Elm.Expression
-    , data : { message : Elm.Expression } -> Elm.Expression
+    , data : { news : Elm.Expression, blog : Elm.Expression } -> Elm.Expression
     , model : model -> Elm.Expression
     }
 make_ =
@@ -76,9 +80,21 @@ make_ =
                     [ "Route", "Index" ]
                     "Data"
                     []
-                    (Type.record [ ( "message", Type.string ) ])
+                    (Type.record
+                        [ ( "news"
+                          , Type.list (Type.namedWith [ "Post" ] "Post" [])
+                          )
+                        , ( "blog"
+                          , Type.list (Type.namedWith [ "Post" ] "Post" [])
+                          )
+                        ]
+                    )
                 )
-                (Elm.record [ Tuple.pair "message" data_args.message ])
+                (Elm.record
+                    [ Tuple.pair "news" data_args.news
+                    , Tuple.pair "blog" data_args.blog
+                    ]
+                )
     , model =
         \model_args ->
             Elm.withType

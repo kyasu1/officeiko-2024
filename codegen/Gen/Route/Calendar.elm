@@ -15,7 +15,7 @@ moduleName_ =
     [ "Route", "Calendar" ]
 
 
-{-| route: RouteBuilder.StatefulRoute Route.Calendar.RouteParams Route.Calendar.Data Route.Calendar.ActionData Route.Calendar.Model Route.Calendar.Msg -}
+{-| route: RouteBuilder.StatelessRoute Route.Calendar.RouteParams Route.Calendar.Data Route.Calendar.ActionData -}
 route : Elm.Expression
 route =
     Elm.value
@@ -25,12 +25,10 @@ route =
             Just
                 (Type.namedWith
                     [ "RouteBuilder" ]
-                    "StatefulRoute"
+                    "StatelessRoute"
                     [ Type.namedWith [ "Route", "Calendar" ] "RouteParams" []
                     , Type.namedWith [ "Route", "Calendar" ] "Data" []
                     , Type.namedWith [ "Route", "Calendar" ] "ActionData" []
-                    , Type.namedWith [ "Route", "Calendar" ] "Model" []
-                    , Type.namedWith [ "Route", "Calendar" ] "Msg" []
                     ]
                 )
         }
@@ -40,15 +38,15 @@ annotation_ :
     { actionData : Type.Annotation
     , data : Type.Annotation
     , routeParams : Type.Annotation
-    , model : Type.Annotation
     , msg : Type.Annotation
+    , model : Type.Annotation
     }
 annotation_ =
     { actionData = Type.alias moduleName_ "ActionData" [] (Type.record [])
     , data = Type.alias moduleName_ "Data" [] (Type.record [])
     , routeParams = Type.alias moduleName_ "RouteParams" [] (Type.record [])
+    , msg = Type.alias moduleName_ "Msg" [] Type.unit
     , model = Type.alias moduleName_ "Model" [] (Type.record [])
-    , msg = Type.namedWith [ "Route", "Calendar" ] "Msg" []
     }
 
 
@@ -102,15 +100,13 @@ values_ =
                 Just
                     (Type.namedWith
                         [ "RouteBuilder" ]
-                        "StatefulRoute"
+                        "StatelessRoute"
                         [ Type.namedWith
                             [ "Route", "Calendar" ]
                             "RouteParams"
                             []
                         , Type.namedWith [ "Route", "Calendar" ] "Data" []
                         , Type.namedWith [ "Route", "Calendar" ] "ActionData" []
-                        , Type.namedWith [ "Route", "Calendar" ] "Model" []
-                        , Type.namedWith [ "Route", "Calendar" ] "Msg" []
                         ]
                     )
             }

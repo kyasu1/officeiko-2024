@@ -47,7 +47,12 @@ annotation_ =
     { actionData = Type.alias moduleName_ "ActionData" [] (Type.record [])
     , data = Type.alias moduleName_ "Data" [] (Type.record [])
     , routeParams = Type.alias moduleName_ "RouteParams" [] (Type.record [])
-    , model = Type.alias moduleName_ "Model" [] (Type.record [])
+    , model =
+        Type.alias
+            moduleName_
+            "Model"
+            []
+            (Type.record [ ( "pawn", Type.namedWith [ "Pawn" ] "Model" [] ) ])
     , msg = Type.namedWith [ "Route", "Pawn" ] "Msg" []
     }
 
@@ -56,7 +61,7 @@ make_ :
     { actionData : actionData -> Elm.Expression
     , data : data -> Elm.Expression
     , routeParams : routeParams -> Elm.Expression
-    , model : model -> Elm.Expression
+    , model : { pawn : Elm.Expression } -> Elm.Expression
     }
 make_ =
     { actionData =
@@ -83,8 +88,15 @@ make_ =
     , model =
         \model_args ->
             Elm.withType
-                (Type.alias [ "Route", "Pawn" ] "Model" [] (Type.record []))
-                (Elm.record [])
+                (Type.alias
+                    [ "Route", "Pawn" ]
+                    "Model"
+                    []
+                    (Type.record
+                        [ ( "pawn", Type.namedWith [ "Pawn" ] "Model" [] ) ]
+                    )
+                )
+                (Elm.record [ Tuple.pair "pawn" model_args.pawn ])
     }
 
 
