@@ -191,7 +191,7 @@ view app shared =
                         , div [ class "text-sm text-ellipsis whitespace-nowrap overflow-hidden max-w-400px lg:max-w-[200px]" ] [ text post.title ]
                         ]
                 )
-                app.data.news
+                app.data.blog
             )
         , Layout.section []
             [ h3 [ class "text-center pb-4 text-2xl font-bold" ] [ text "当店の販売サイト" ]
