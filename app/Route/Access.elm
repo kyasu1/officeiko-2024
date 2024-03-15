@@ -12,6 +12,7 @@ import FatalError
 import Head
 import Html exposing (..)
 import Html.Attributes as A exposing (class)
+import Layout.Access exposing (Access)
 import PagesMsg
 import Route
 import RouteBuilder
@@ -69,7 +70,7 @@ subscriptions routeParams path shared model =
 
 
 type alias Data =
-    {}
+    { access : Access }
 
 
 type alias ActionData =
@@ -78,7 +79,7 @@ type alias ActionData =
 
 data : BackendTask.BackendTask FatalError.FatalError Data
 data =
-    BackendTask.succeed {}
+    Layout.Access.load |> BackendTask.map Data
 
 
 head : RouteBuilder.App Data ActionData RouteParams -> List Head.Tag
@@ -93,10 +94,12 @@ view :
     -> View.View (PagesMsg.PagesMsg Msg)
 view app shared model =
     { title = "Access"
-    , body =
-        [ Html.h2 [ class "flex flex-col items-center justify-center h-[800px]" ]
-            [ Html.text "UNDER CONSTRUCTION"
-            , Route.link [] [ text "HERE" ] Route.Index
-            ]
-        ]
+
+    -- , body =
+    -- [ Html.h2 [ class "flex flex-col items-center justify-center h-[800px]" ]
+    --     [ Html.text "UNDER CONSTRUCTION"
+    --     , Route.link [] [ text "HERE" ] Route.Index
+    --     ]
+    -- ]
+    , body = Layout.Access.view app.data.access
     }
