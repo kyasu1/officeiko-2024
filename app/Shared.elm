@@ -229,7 +229,7 @@ viewFooter path =
                         ]
                     , ul [ class "flex flex-col md:flex-row text-sm text-white font-medium" ]
                         [ li [ class "px-4 py-2" ] [ Route.link [] [ text "質入・融資" ] Route.Pawn ]
-                        , li [ class "px-4 py-2" ] [ Route.link [] [ text "取扱商品" ] Route.Calendar ]
+                        , li [ class "px-4 py-2" ] [ Route.link [] [ text "取扱商品" ] Route.Selling ]
                         , li [ class "px-4 py-2" ] [ Route.link [] [ text "金プラ相場" ] Route.Stocks ]
                         , li [ class "px-4 py-2" ] [ Route.link [] [ text "金券買取" ] Route.KaitoriTicket ]
                         , li [ class "px-4 py-2" ] [ Route.link [] [ text "WU" ] Route.WesternUnion ]
