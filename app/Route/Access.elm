@@ -87,7 +87,7 @@ data =
 image : Seo.Image
 image =
     { url =
-        Pages.Url.external "https://newt-s3.s3.ap-northeast-1.amazonaws.com/access_map_d76b65c614.jpghttps://newt-s3.s3.ap-northeast-1.amazonaws.com/access_map_d76b65c614.jpg"
+        Pages.Url.external "https://newt-s3.s3.ap-northeast-1.amazonaws.com/access_map_d76b65c614.jpg"
     , alt = "Access"
     , dimensions = Just { width = 1106, height = 579 }
     , mimeType = Nothing
