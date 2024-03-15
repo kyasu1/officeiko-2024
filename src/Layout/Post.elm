@@ -9,6 +9,7 @@ import Markdown.Block as Block
 import Markdown.Renderer
 import Post exposing (Post)
 import Svg.Attributes as SA
+import Url
 import Utils
 
 
@@ -16,7 +17,7 @@ view : Post -> Html msg
 view post =
     div []
         [ Layout.hero [] [ text post.title ]
-        , Layout.image [] (img [ A.src post.coverImage.src, class "w-auto h-64" ] [])
+        , Layout.image [] (img [ A.src (Url.toString post.coverImage.original.url), class "w-auto h-64" ] [])
         , Layout.section []
             [ div [ class "flex justify-end text-sm space-x-2 " ]
                 [ div [] [ text "更新日 ", text (Utils.kanjiDate post.publishedOn) ]

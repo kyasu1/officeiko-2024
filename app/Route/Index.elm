@@ -14,6 +14,7 @@ import Route
 import RouteBuilder exposing (App, StatelessRoute)
 import Settings
 import Shared
+import Url
 import Utils
 import View exposing (View)
 
@@ -176,13 +177,21 @@ view app shared =
                 (\post ->
                     div [ class "py-4" ]
                         [ div [ class "mb-4" ]
-                            [ Route.link [] [ img [ A.src post.coverImage.src, class "border hover:opacity-80" ] [] ] (Route.Post__Slug_ { slug = post.slug })
+                            [ Route.link []
+                                [ img
+                                    [ A.src
+                                        (Url.toString post.coverImage.thumbnail.url)
+                                    , class "border hover:opacity-80"
+                                    ]
+                                    []
+                                ]
+                                (Route.Post__Slug_ { slug = post.slug })
                             ]
                         , div [ class "text-sm" ] [ text (Utils.kanjiDate post.publishedOn) ]
                         , div [ class "text-sm text-ellipsis whitespace-nowrap overflow-hidden max-w-400px lg:max-w-[200px]" ] [ text post.title ]
                         ]
                 )
-                app.data.blog
+                app.data.news
             )
         , Layout.section []
             [ h3 [ class "text-center pb-4 text-2xl font-bold" ] [ text "当店の販売サイト" ]

@@ -24,15 +24,15 @@ view =
             ]
         ]
     , Layout.section []
-        [ div [ class "flex flex-col print:flex-row items-center" ]
-            [ div [ class "print:w-1/2 py-4 print:py-0" ]
+        [ div [ class "flex flex-col md:flex-row print:flex-row items-center md:space-x-8" ]
+            [ div [ class "md:w-1/2 print:w-1/2 py-4 print:py-0" ]
                 [ img
                     [ class "border border-black rounded print:border-transparent"
                     , A.src "https://s3-ap-northeast-1.amazonaws.com/officeiko-public/calendars/this.png"
                     ]
                     []
                 ]
-            , div [ class "print:w-1/2 py-4 print:py-0" ]
+            , div [ class "md:w-1/2 print:w-1/2 py-4 print:py-0" ]
                 [ img
                     [ class "border border-black rounded print:border-transparent"
                     , A.src "https://s3-ap-northeast-1.amazonaws.com/officeiko-public/calendars/next.png"
