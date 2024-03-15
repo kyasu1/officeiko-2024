@@ -1,10 +1,11 @@
-module Strapi exposing (Collection, ImageSet, collectionDecoder, imageSetDecoder, load)
+module Strapi exposing (Collection, ImageSet, collectionDecoder, imageSetDecoder, load, renderImageSet)
 
 import BackendTask exposing (BackendTask)
 import BackendTask.Env
 import BackendTask.Http
 import FatalError exposing (FatalError)
 import Html exposing (..)
+import Html.Attributes as A
 import Json.Decode as JD
 import Json.Decode.Extra as JD
 import MimeType exposing (MimeType)
@@ -130,3 +131,24 @@ imageDecoder =
             )
         |> JD.andMap (JD.field "width" JD.int)
         |> JD.andMap (JD.field "height" JD.int)
+
+
+renderImageSet : ImageSet -> Html msg
+renderImageSet imageSet =
+    img
+        [ A.attribute "srcset" <|
+            (Url.toString imageSet.small.url
+                ++ " 500w, "
+                ++ Url.toString imageSet.medium.url
+                ++ " 750w, "
+                ++ Url.toString imageSet.large.url
+                ++ " 1000w"
+            )
+        , A.attribute "sizes" "(max-width: 1280px) 100vw, 1280px"
+        , A.src (Url.toString imageSet.original.url)
+        , A.alt (Maybe.withDefault "" imageSet.alternativeText)
+        , A.attribute "loading" "lazy"
+        , A.width imageSet.original.width
+        , A.height imageSet.original.height
+        ]
+        []

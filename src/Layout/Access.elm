@@ -63,11 +63,9 @@ view access =
         [ div [ class "space-y-4" ] (Markdown.toHtml descriptionRender access.description)
         ]
     , Layout.subHeader [ text access.gamoTitle ]
-    , div [ class "space-y-4" ] (List.map row access.gamo)
+    , Layout.section [] [ div [ class "space-y-4" ] (List.map row access.gamo) ]
     , Layout.subHeader [ text access.shinKoshigayaTitle ]
-
-    -- , div [ class "space-y-4" ] (List.map row access.shinKoshigaya)
-    , div [ class "text-center py-16 font-bold" ] [ text "UNDER CONSTRUCTION" ]
+    , Layout.section [] [ div [ class "space-y-4" ] (List.map row access.shinKoshigaya) ]
     ]
 
 
@@ -76,7 +74,9 @@ row field =
     div [ class "flex flex-col-reverse md:flex-row" ]
         [ div [ class "w-full md:w-1/2 p-4" ]
             (Markdown.toHtml stepRender field.description)
-        , div [ class "w-full md:w-1/2 p-4" ] [ img [ A.src (Url.toString field.image.original.url) ] [] ]
+
+        -- , div [ class "w-full md:w-1/2 p-4" ] [ img [ A.src (Url.toString field.image.original.url) ] [] ]
+        , div [ class "w-full md:w-1/2 p-4" ] [ Strapi.renderImageSet field.image ]
         ]
 
 
