@@ -28,9 +28,9 @@ postFromSlug slug =
             )
 
 
-getAllPosts : Maybe Int -> BackendTask FatalError (List Post)
-getAllPosts maybeCategoryId =
-    getPosts { skip = 0, limit = 100, categoryId = maybeCategoryId }
+getAllPosts : Maybe CategoryType -> BackendTask FatalError (List Post)
+getAllPosts maybecategoryType =
+    getPosts { skip = 0, limit = 100, categoryType = maybecategoryType }
 
 
 getPosts : Query -> BackendTask FatalError (List Post)
@@ -45,18 +45,18 @@ getPosts query =
 
 newsPosts : BackendTask FatalError (List Post)
 newsPosts =
-    getPosts { skip = 0, limit = 4, categoryId = Just 2 }
+    getPosts { skip = 0, limit = 4, categoryType = Just News }
 
 
 blogPosts : BackendTask FatalError (List Post)
 blogPosts =
-    getPosts { skip = 0, limit = 8, categoryId = Just 1 }
+    getPosts { skip = 0, limit = 8, categoryType = Just Blog }
 
 
 type alias Query =
     { skip : Int
     , limit : Int
-    , categoryId : Maybe Int
+    , categoryType : Maybe CategoryType
     }
 
 
@@ -74,9 +74,9 @@ getPostsInternal posts query token =
             [ "pagination[limit]=" ++ String.fromInt query.limit ]
 
         tagQuery =
-            case query.categoryId of
-                Just categoryId ->
-                    [ "filters[category][id][$eq]=" ++ String.fromInt categoryId ]
+            case query.categoryType of
+                Just categoryType ->
+                    [ "filters[category][slug][$eq]=" ++ categoryTypeToSlug categoryType ]
 
                 Nothing ->
                     []
@@ -131,6 +131,16 @@ type alias Category =
 type CategoryType
     = News
     | Blog
+
+
+categoryTypeToSlug : CategoryType -> String
+categoryTypeToSlug v =
+    case v of
+        News ->
+            "news"
+
+        Blog ->
+            "blog"
 
 
 postDecoder : JD.Decoder Post
