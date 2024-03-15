@@ -61,7 +61,7 @@ head _ =
         , siteName = Settings.title
         , image = Settings.image
         , description = Settings.subtitle
-        , title = Settings.withSubtitle "会社概要"
+        , title = Settings.withSubtitle "営業日カレンダー"
         , locale = Settings.locale
         }
         |> Seo.article

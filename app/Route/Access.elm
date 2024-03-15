@@ -10,12 +10,14 @@ import BackendTask
 import Effect
 import FatalError
 import Head
+import Head.Seo as Seo
 import Html exposing (..)
-import Html.Attributes as A exposing (class)
 import Layout.Access exposing (Access)
+import Pages.Url
 import PagesMsg
 import Route
-import RouteBuilder
+import RouteBuilder exposing (App)
+import Settings
 import Shared
 import UrlPath
 import View
@@ -82,9 +84,35 @@ data =
     Layout.Access.load |> BackendTask.map Data
 
 
-head : RouteBuilder.App Data ActionData RouteParams -> List Head.Tag
-head app =
-    []
+image : Seo.Image
+image =
+    { url =
+        Pages.Url.external "https://newt-s3.s3.ap-northeast-1.amazonaws.com/access_map_d76b65c614.jpghttps://newt-s3.s3.ap-northeast-1.amazonaws.com/access_map_d76b65c614.jpg"
+    , alt = "Access"
+    , dimensions = Just { width = 1106, height = 579 }
+    , mimeType = Nothing
+    }
+
+
+head :
+    App Data ActionData RouteParams
+    -> List Head.Tag
+head _ =
+    Seo.summary
+        { canonicalUrlOverride = Nothing
+        , siteName = Settings.title
+        , image = image
+        , description = Settings.subtitle
+        , title = Settings.withSubtitle "Access"
+        , locale = Settings.locale
+        }
+        |> Seo.article
+            { tags = []
+            , section = Nothing
+            , publishedTime = Nothing
+            , modifiedTime = Nothing
+            , expirationTime = Nothing
+            }
 
 
 view :
@@ -92,14 +120,7 @@ view :
     -> Shared.Model
     -> Model
     -> View.View (PagesMsg.PagesMsg Msg)
-view app shared model =
+view app _ _ =
     { title = "Access"
-
-    -- , body =
-    -- [ Html.h2 [ class "flex flex-col items-center justify-center h-[800px]" ]
-    --     [ Html.text "UNDER CONSTRUCTION"
-    --     , Route.link [] [ text "HERE" ] Route.Index
-    --     ]
-    -- ]
     , body = Layout.Access.view app.data.access
     }

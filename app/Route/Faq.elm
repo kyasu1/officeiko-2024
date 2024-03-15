@@ -61,7 +61,7 @@ head _ =
         , siteName = Settings.title
         , image = Settings.image
         , description = Settings.subtitle
-        , title = Settings.withSubtitle "お問い合わせ"
+        , title = Settings.withSubtitle "よくある質問"
         , locale = Settings.locale
         }
         |> Seo.article
@@ -78,6 +78,6 @@ view :
     -> Shared.Model
     -> View (PagesMsg Msg)
 view _ _ =
-    { title = Settings.withSubtitle "お問い合わせ"
+    { title = Settings.withSubtitle "よくある質問"
     , body = Layout.Faq.view
     }
