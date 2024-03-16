@@ -8,13 +8,13 @@ import Html exposing (..)
 import Html.Attributes as A exposing (class)
 import Layout
 import Market exposing (Market)
+import Pages.Url as Url
 import PagesMsg exposing (PagesMsg)
 import Post exposing (Post)
 import Route
 import RouteBuilder exposing (App, StatelessRoute)
 import Settings
 import Shared
-import Url
 import Utils
 import View exposing (View)
 

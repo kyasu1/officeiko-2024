@@ -1,5 +1,7 @@
 module Strapi exposing (Collection, ImageSet, collectionDecoder, imageSetDecoder, load, renderImageSet)
 
+-- import Url exposing (Url)
+
 import BackendTask exposing (BackendTask)
 import BackendTask.Env
 import BackendTask.Http
@@ -9,7 +11,7 @@ import Html.Attributes as A
 import Json.Decode as JD
 import Json.Decode.Extra as JD
 import MimeType exposing (MimeType)
-import Url exposing (Url)
+import Pages.Url as Url exposing (Url)
 
 
 load : String -> JD.Decoder a -> BackendTask FatalError a
@@ -116,9 +118,7 @@ imageDecoder =
     JD.succeed Image
         |> JD.andMap
             (JD.field "url"
-                (JD.string
-                    |> JD.andThen (Url.fromString >> JD.fromMaybe "invalid url string")
-                )
+                (JD.map Url.external JD.string)
             )
         |> JD.andMap
             (JD.field "mime"

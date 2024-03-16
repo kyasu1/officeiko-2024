@@ -9,10 +9,12 @@ module Route.Post.Slug_ exposing (Model, Msg, RouteParams, route, Data, ActionDa
 import BackendTask exposing (BackendTask)
 import FatalError exposing (FatalError)
 import Head
+import Head.Seo as Seo
 import Layout.Post
 import PagesMsg exposing (PagesMsg)
 import Post
 import RouteBuilder exposing (App, StatelessRoute)
+import Settings
 import Shared
 import View exposing (View)
 
@@ -61,9 +63,38 @@ data routeParams =
     BackendTask.map Data (Post.postFromSlug routeParams.slug)
 
 
-head : RouteBuilder.App Data ActionData RouteParams -> List Head.Tag
+image : Post.Post -> Seo.Image
+image post =
+    { url = post.coverImage.original.url
+    , alt = post.coverImage.alternativeText |> Maybe.withDefault ""
+    , dimensions =
+        Just
+            { width = post.coverImage.original.width
+            , height = post.coverImage.original.height
+            }
+    , mimeType = Nothing
+    }
+
+
+head :
+    App Data ActionData RouteParams
+    -> List Head.Tag
 head app =
-    []
+    Seo.summary
+        { canonicalUrlOverride = Nothing
+        , siteName = Settings.title
+        , image = image app.data.post
+        , description = Settings.subtitle
+        , title = Settings.withSubtitle app.data.post.title
+        , locale = Settings.locale
+        }
+        |> Seo.article
+            { tags = []
+            , section = Nothing
+            , publishedTime = Nothing
+            , modifiedTime = Nothing
+            , expirationTime = Nothing
+            }
 
 
 view :

@@ -10,6 +10,7 @@ import Markdown
 import Markdown.Block
 import Markdown.Html
 import Markdown.Renderer
+import Pages.Url
 import Strapi
 import Url
 
@@ -58,7 +59,7 @@ fieldDecoder =
 view : Access -> List (Html msg)
 view access =
     [ Layout.hero [] [ text "Access" ]
-    , Layout.image [] (img [ A.src (Url.toString access.accessMap.original.url) ] [])
+    , Layout.image [] (img [ A.src (Pages.Url.toString access.accessMap.original.url) ] [])
     , Layout.section []
         [ div [ class "space-y-4" ] (Markdown.toHtml descriptionRender access.description)
         ]

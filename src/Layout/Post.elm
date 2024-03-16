@@ -7,9 +7,9 @@ import Layout
 import Markdown
 import Markdown.Block as Block
 import Markdown.Renderer
+import Pages.Url as Url
 import Post exposing (Post)
 import Svg.Attributes as SA
-import Url
 import Utils
 
 

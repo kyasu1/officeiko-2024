@@ -3,9 +3,9 @@ module Layout.Posts exposing (view)
 import Html exposing (..)
 import Html.Attributes as A exposing (class)
 import Layout
+import Pages.Url as Url
 import Post exposing (Post, Tag)
 import Route
-import Url
 import Utils
 
 
