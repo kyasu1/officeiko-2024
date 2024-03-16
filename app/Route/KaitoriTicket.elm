@@ -56,7 +56,7 @@ data =
 
 image : Seo.Image
 image =
-    { url = UrlPath.fromString "/images/item-ticket.png" |> Pages.Url.fromPath
+    { url = UrlPath.fromString "/images/item-ticket.jpg" |> Pages.Url.fromPath
     , alt = "金券買取のイメージ"
     , dimensions = Nothing
     , mimeType = Nothing
