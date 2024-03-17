@@ -1,9 +1,8 @@
-module Layout.Faq exposing (..)
+module Layout.Faq exposing (view)
 
 import Heroicons.Outline as Outline
 import Html exposing (..)
 import Html.Attributes as A exposing (class)
-import LanguageTag.Region exposing (qa)
 import Layout
 import Route
 import Svg.Attributes as SA

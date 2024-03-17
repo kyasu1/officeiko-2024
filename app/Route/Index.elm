@@ -83,7 +83,7 @@ view app shared =
             [ div [ class "flex flex-col lg:flex-row lg:space-x-4" ]
                 [ div [ class "w-full lg:w-1/2" ]
                     [ img
-                        [ A.src "/images/top-tenpo-4-3.jpg"
+                        [ A.src "https://image.officeiko.co.jp/top_tenpo_4_3_3261f260d9.jpg"
                         , A.alt "質イコーの外観"
                         ]
                         []

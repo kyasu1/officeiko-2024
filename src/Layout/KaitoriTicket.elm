@@ -215,14 +215,6 @@ row index ticket =
         ]
 
 
-classTh =
-    class "bg-gray-100 p-4"
-
-
-classTd =
-    class "bg-white p-4"
-
-
 
 --
 

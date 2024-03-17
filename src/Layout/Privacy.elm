@@ -2,7 +2,6 @@ module Layout.Privacy exposing (Privacy, file, view)
 
 import BackendTask exposing (BackendTask)
 import BackendTask.File as File
-import Date exposing (Date)
 import FatalError exposing (FatalError)
 import Html exposing (..)
 import Html.Attributes as A exposing (class)
@@ -10,7 +9,7 @@ import Json.Decode as JD
 import Layout
 import Markdown
 import Markdown.Block as Block
-import Markdown.Renderer exposing (Renderer)
+import Markdown.Renderer
 
 
 type alias Privacy =

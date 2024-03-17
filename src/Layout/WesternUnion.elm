@@ -4,8 +4,6 @@ import Heroicons.Outline as Outline
 import Html exposing (..)
 import Html.Attributes as A exposing (class)
 import Layout
-import List exposing (map5)
-import Route
 import Svg.Attributes as SA
 
 
