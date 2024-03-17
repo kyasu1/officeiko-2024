@@ -1,8 +1,9 @@
-module Layout exposing (externalLink, hero, image, link, section, subHeader)
+module Layout exposing (hero, image, link, section, subHeader)
 
 import Html exposing (..)
 import Html.Attributes as A exposing (class)
 import Route
+import UrlPath
 
 
 section : List (Attribute msg) -> List (Html msg) -> Html msg
@@ -31,16 +32,19 @@ image attrs contents =
         ]
 
 
+linkCss : Attribute msg
 linkCss =
     class "text-blue-600 visited:text-purple-600 underline underline-offset-1"
 
 
-link : String -> Route.Route -> Html msg
-link s route =
-    Route.link [ linkCss ]
-        [ text s
-        ]
-        route
+link : String -> List (Html msg) -> Html msg
+link url content =
+    case UrlPath.fromString url |> Route.segmentsToRoute of
+        Just route ->
+            Route.link [ linkCss ] content route
+
+        Nothing ->
+            externalLink url content
 
 
 externalLink : String -> List (Html msg) -> Html msg
@@ -48,5 +52,6 @@ externalLink url content =
     a [ linkCss, A.target "_blank", A.href url, A.rel "noopener noreferrer" ] content
 
 
+subHeader : List (Html msg) -> Html msg
 subHeader =
     h2 [ class "text-center text-xl p-2 mb-2 bg-gray-200 text-gray-900 font-semibold" ]

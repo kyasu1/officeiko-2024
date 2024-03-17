@@ -33,7 +33,7 @@ view =
                 [ div [] [ text "Google Maps is your friend! " ]
                 , div []
                     [ text "Open this "
-                    , Layout.externalLink "https://maps.app.goo.gl/GuHagUvSGzJ1qvaU8" [ text "LINK" ]
+                    , Layout.link "https://maps.app.goo.gl/GuHagUvSGzJ1qvaU8" [ text "LINK" ]
                     , text " for more details."
                     ]
                 ]
@@ -53,7 +53,7 @@ view =
                 , text " "
                 , text "ウエスタンユニオンの代理店として2020年1月からお取り扱いしています。"
                 , text "当店は窓口型店舗のため、現金での送金・受取に対応しています。"
-                , Layout.externalLink "https://www.westernunion.com/jp/ja/mobile-app.html"
+                , Layout.link "https://www.westernunion.com/jp/ja/mobile-app.html"
                     [ strong [] [ text "モバイルアプリ" ]
                     ]
                 , text "を利用したお取引には対応しておりませんのでご注意ください。"
@@ -106,7 +106,7 @@ view =
             ]
         , Layout.section []
             [ text "その他詳細は、ウエスタンユニオンの"
-            , Layout.externalLink "https://www.westernunion.com/jp/ja/frequently-asked-questions.html"
+            , Layout.link "https://www.westernunion.com/jp/ja/frequently-asked-questions.html"
                 [ text "ホームページ"
                 ]
             , text "にてご確認ください。"
@@ -197,7 +197,7 @@ view =
                     , div [ class "py-4 flex justify-center" ] [ img [ A.src "/images/wu_memo_send.png" ] [] ]
                     , div []
                         [ text "メモ用紙のPDFファイルは"
-                        , Layout.externalLink "/assets/wu-memo.pdf" [ text "こちら" ]
+                        , Layout.link "/assets/wu-memo.pdf" [ text "こちら" ]
                         , text "からダウンロードできます。"
                         ]
                     ]
@@ -279,7 +279,7 @@ view =
                     , div [ class "py-4 flex justify-center" ] [ img [ A.src "/images/wu_memo_recv.png" ] [] ]
                     , div []
                         [ text "メモ用紙のPDFファイルは"
-                        , Layout.externalLink "/assets/wu-memo.pdf" [ text "こちら" ]
+                        , Layout.link "/assets/wu-memo.pdf" [ text "こちら" ]
                         , text "からダウンロードできます。"
                         ]
                     ]

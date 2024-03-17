@@ -33,7 +33,7 @@ type alias RouteParams =
 
 
 type alias Data =
-    {}
+    { selling : Layout.Selling.Selling }
 
 
 type alias ActionData =
@@ -51,7 +51,7 @@ route =
 
 data : BackendTask.BackendTask FatalError Data
 data =
-    BackendTask.succeed {}
+    Layout.Selling.load |> BackendTask.map Data
 
 
 image : Seo.Image
@@ -91,5 +91,5 @@ view :
 view app _ =
     { title = Settings.withSubtitle "取扱商品"
     , body =
-        [ Layout.Selling.view ]
+        [ Layout.Selling.view app.data.selling ]
     }

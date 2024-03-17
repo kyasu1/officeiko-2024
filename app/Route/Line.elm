@@ -94,5 +94,5 @@ view :
 view app _ =
     { title = "About"
     , body =
-        [ Layout.Selling.view ]
+        []
     }

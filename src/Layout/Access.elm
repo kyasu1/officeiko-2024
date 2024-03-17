@@ -24,15 +24,9 @@ type alias Access =
     { accessMap : Strapi.ImageSet
     , description : String
     , gamoTitle : String
-    , gamo : List Field
+    , gamo : List Strapi.Field
     , shinKoshigayaTitle : String
-    , shinKoshigaya : List Field
-    }
-
-
-type alias Field =
-    { description : String
-    , image : Strapi.ImageSet
+    , shinKoshigaya : List Strapi.Field
     }
 
 
@@ -43,17 +37,10 @@ decoder =
             (JD.field "accessMap" Strapi.imageSetDecoder)
             (JD.field "description" JD.string)
             (JD.field "gamoTitle" JD.string)
-            (JD.field "gamo" (JD.list fieldDecoder))
+            (JD.field "gamo" (JD.list Strapi.fieldDecoder))
             (JD.field "shinKoshigayaTitle" JD.string)
-            (JD.field "shinKoshigaya" (JD.list fieldDecoder))
+            (JD.field "shinKoshigaya" (JD.list Strapi.fieldDecoder))
         )
-
-
-fieldDecoder : JD.Decoder Field
-fieldDecoder =
-    JD.map2 Field
-        (JD.field "description" JD.string)
-        (JD.field "image" Strapi.imageSetDecoder)
 
 
 view : Access -> List (Html msg)
@@ -70,7 +57,7 @@ view access =
     ]
 
 
-row : Field -> Html msg
+row : Strapi.Field -> Html msg
 row field =
     div [ class "flex flex-col-reverse md:flex-row" ]
         [ div [ class "w-full md:w-1/2 p-4" ]

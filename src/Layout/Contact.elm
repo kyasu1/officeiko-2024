@@ -13,7 +13,7 @@ view =
     , Layout.section []
         [ div []
             [ text "お問い合わせは、上記の"
-            , Layout.externalLink "https://page.line.me/oue6072d?openQrModal=true" [ text "LINE公式アカウント" ]
+            , Layout.link "https://page.line.me/oue6072d?openQrModal=true" [ text "LINE公式アカウント" ]
             , text "またはメールにて承ります。"
             ]
         , div [ class "py-4" ]
@@ -31,7 +31,7 @@ view =
     , Layout.section []
         [ div [ class "leading-loose" ]
             [ text "お送りいただいた個人情報は、お客様とのご連絡等の目的以外では使用致しません。当社の"
-            , Layout.link "プライバシーポリシー" Route.Privacy
+            , Layout.link (Route.toString Route.Privacy) [ text "プライバシーポリシー" ]
             , text "をご確認いただき、同意いただいた上でご送信ください。ご入力いただいた情報は暗号化されて送信されます。"
             ]
         ]

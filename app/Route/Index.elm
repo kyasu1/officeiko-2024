@@ -197,19 +197,19 @@ view app shared =
             [ h3 [ class "text-center pb-4 text-2xl font-bold" ] [ text "当店の販売サイト" ]
             , div [ class "grid grid-cols-2 md:grid-cols-4 gap-1" ]
                 [ div [ class "bg-white p-2" ]
-                    [ Layout.externalLink "https://www.chrono24.jp/dealer/pawnshopiko/index.htm"
+                    [ Layout.link "https://www.chrono24.jp/dealer/pawnshopiko/index.htm"
                         [ img [ A.src "/images/logo_chrono24.png", A.alt "Chrono24" ] [] ]
                     ]
                 , div [ class "bg-white p-2" ]
-                    [ Layout.externalLink "https://store.shopping.yahoo.co.jp/pawnshopiko/"
+                    [ Layout.link "https://store.shopping.yahoo.co.jp/pawnshopiko/"
                         [ img [ A.src "/images/logo_shopping.png", A.alt "ヤフーショッピング" ] [] ]
                     ]
                 , div [ class "bg-white p-2" ]
-                    [ Layout.externalLink "https://auctions.yahoo.co.jp/seller/pawnshopiko"
+                    [ Layout.link "https://auctions.yahoo.co.jp/seller/pawnshopiko"
                         [ img [ A.src "/images/logo_auction.png", A.alt "ヤフーオークション" ] [] ]
                     ]
                 , div [ class "bg-white p-2" ]
-                    [ Layout.externalLink "https://jp.mercari.com/mypage/listings"
+                    [ Layout.link "https://jp.mercari.com/mypage/listings"
                         [ img [ A.src "/images/logo_mercari.png", A.alt "メルカリ" ] [] ]
                     ]
                 ]
@@ -228,22 +228,22 @@ view app shared =
             [ h3 [ class "text-center pb-4 text-2xl font-bold" ] [ text "関連サイト" ]
             , div [ class "grid grid-cols-2 md:grid-cols-4 gap-1" ]
                 [ div [ class "bg-white p-2" ]
-                    [ Layout.externalLink "https://www.zenshichi.gr.jp/"
+                    [ Layout.link "https://www.zenshichi.gr.jp/"
                         [ img [ A.src "/images/banner-zenshichi@2x.png", A.alt "全国質屋組合連合会" ] [] ]
                     , div [ class "text-sm mt-2 text-center" ] [ text "全国質屋組合連合会" ]
                     ]
                 , div [ class "bg-white p-2" ]
-                    [ Layout.externalLink "https://www.saitama783.com/"
+                    [ Layout.link "https://www.saitama783.com/"
                         [ img [ A.src "/images/banner_saitama783.png", A.alt "埼玉県質屋組合連合会" ] [] ]
                     , div [ class "text-sm mt-2 text-center" ] [ text "埼玉県質屋組合連合会" ]
                     ]
                 , div [ class "bg-white p-2" ]
-                    [ Layout.externalLink "https://www.iko78.com"
+                    [ Layout.link "https://www.iko78.com"
                         [ img [ A.src "/images/banner_iko78.png", A.alt "イコーグループ" ] [] ]
                     , div [ class "text-sm mt-2 text-center" ] [ text "イコーグループのサイト" ]
                     ]
                 , div [ class "bg-white p-2" ]
-                    [ Layout.externalLink "https://www.shichimaru.com"
+                    [ Layout.link "https://www.shichimaru.com"
                         [ img [ A.src "/images/banner_shichimaru.png", A.alt "しちまる" ] [] ]
                     , div [ class "text-sm mt-2 text-center" ] [ text "質屋のマスコットしちまる" ]
                     ]

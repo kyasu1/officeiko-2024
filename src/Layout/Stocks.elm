@@ -67,7 +67,7 @@ outlineGd =
 viewGd : List Market.Rate -> Html msg
 viewGd rates =
     div [ class "grid grid-cols-[200px_1fr_1fr] gap-px" ]
-        ([ div [ outlineGd, class "col-span-3 bg-yellow-400 py-2 text-center text-xl font-bold print:hidden" ] [ text "金製品" ]
+        ([ div [ outlineGd, class "col-span-3 bg-yellow-400 py-2 text-center text-xl font-bold print:text-base" ] [ text "金製品" ]
          , div [ outlineGd, class "bg-yellow-400 text-center p-2 print:hidden" ] [ text "品位" ]
          , div [ outlineGd, class "bg-yellow-400 text-center p-2 print:hidden" ] [ text "買取価額" ]
          , div [ outlineGd, class "bg-yellow-400 text-center p-2 print:hidden" ] [ text "質預価額" ]
@@ -81,7 +81,7 @@ viewGdRow rate =
     [ div [ outlineGd, class "pl-2 py-1 bg-yellow-400" ] [ text rate.label ]
     , div [ outlineGd, class "pr-2 md:pr-4 py-1 text-right font-medium" ] [ text rate.buyout, text "円" ]
     , div [ outlineGd, class "pr-2 md:pr-4 py-1 text-right font-medium" ] [ text rate.pawn, text "円" ]
-    , div [ outlineGd, class "px-2 py-1 text-xs col-span-3" ] [ text rate.note ]
+    , div [ outlineGd, class "px-2 py-1 text-xs col-span-3 print:hidden" ] [ text rate.note ]
     ]
 
 
@@ -93,7 +93,7 @@ outlinePt =
 viewPt : List Market.Rate -> Html msg
 viewPt rates =
     div [ class "grid grid-cols-[200px_1fr_1fr] gap-px" ]
-        ([ div [ outlinePt, class "col-span-3 bg-gray-300 py-2 text-center text-xl font-bold print:hidden" ] [ text "プラチナ" ]
+        ([ div [ outlinePt, class "col-span-3 bg-gray-300 py-2 text-center text-xl font-bold print:text-base" ] [ text "プラチナ" ]
          , div [ outlinePt, class "bg-gray-300 text-center p-2 print:hidden" ] [ text "品位" ]
          , div [ outlinePt, class "bg-gray-300 text-center p-2 print:hidden" ] [ text "買取価額" ]
          , div [ outlinePt, class "bg-gray-300 text-center p-2 print:hidden" ] [ text "質預価額" ]
@@ -107,7 +107,7 @@ viewPtRow rate =
     [ div [ outlinePt, class "pl-2 py-1 bg-gray-300" ] [ text rate.label ]
     , div [ outlinePt, class "pr-2 md:pr-4 py-1 text-right font-medium" ] [ text rate.buyout, text "円" ]
     , div [ outlinePt, class "pr-2 md:pr-4 py-1 text-right font-medium" ] [ text rate.pawn, text "円" ]
-    , div [ outlinePt, class "px-2 py-1 text-xs col-span-3" ] [ text rate.note ]
+    , div [ outlinePt, class "px-2 py-1 text-xs col-span-3 print:hidden" ] [ text rate.note ]
     ]
 
 
@@ -118,11 +118,11 @@ outlineSv =
 
 viewSv : List Market.Rate -> Html msg
 viewSv rates =
-    div [ class "grid grid-cols-[200px_1fr_1fr] gap-px print:hidden" ]
-        ([ div [ outlineSv, class "col-span-3 bg-gray-100 py-2 text-center text-xl font-bold print:hidden" ] [ text "シルバー" ]
-         , div [ outlineSv, class "bg-gray-100 text-center p-2 print:hidden" ] [ text "品位" ]
-         , div [ outlineSv, class "bg-gray-100 text-center p-2 print:hidden" ] [ text "買取価額" ]
-         , div [ outlineSv, class "bg-gray-100 text-center p-2 print:hidden" ] [ text "質預価額" ]
+    div [ class "grid grid-cols-[200px_1fr_1fr] gap-px" ]
+        ([ div [ outlineSv, class "col-span-3 bg-gray-100 py-2 text-center text-xl font-bold print:text-base" ] [ text "シルバー" ]
+         , div [ outlineSv, class "bg-gray-100 text-center p-2" ] [ text "品位" ]
+         , div [ outlineSv, class "bg-gray-100 text-center p-2" ] [ text "買取価額" ]
+         , div [ outlineSv, class "bg-gray-100 text-center p-2" ] [ text "質預価額" ]
          ]
             ++ List.concat (List.map viewSvRow rates)
         )
@@ -133,7 +133,7 @@ viewSvRow rate =
     [ div [ outlineSv, class "pl-2 py-1 bg-gray-100" ] [ text rate.label ]
     , div [ outlineSv, class "pr-2 md:pr-4 py-1 text-right font-medium" ] [ text rate.buyout, text "円" ]
     , div [ outlineSv, class "pr-2 md:pr-4 py-1 text-right font-medium" ] [ text rate.pawn, text "円" ]
-    , div [ outlineSv, class "px-2 py-1 text-xs col-span-3" ] [ text rate.note ]
+    , div [ outlineSv, class "px-2 py-1 text-xs col-span-3 print:hidden" ] [ text rate.note ]
     ]
 
 

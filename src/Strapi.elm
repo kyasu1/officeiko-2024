@@ -1,4 +1,4 @@
-module Strapi exposing (Collection, ImageSet, collectionDecoder, imageSetDecoder, load, renderImageSet)
+module Strapi exposing (Collection, Field, ImageSet, collectionDecoder, fieldDecoder, imageSetDecoder, load, renderImageSet)
 
 -- import Url exposing (Url)
 
@@ -152,3 +152,20 @@ renderImageSet imageSet =
         , A.height imageSet.original.height
         ]
         []
+
+
+
+-- Components
+
+
+type alias Field =
+    { description : String
+    , image : ImageSet
+    }
+
+
+fieldDecoder : JD.Decoder Field
+fieldDecoder =
+    JD.map2 Field
+        (JD.field "description" JD.string)
+        (JD.field "image" imageSetDecoder)
