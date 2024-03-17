@@ -9,11 +9,13 @@ import Effect exposing (Effect)
 import FatalError exposing (FatalError)
 import Form.Field exposing (checkbox)
 import Heroicons.Outline as Outline
+import Holiday
 import Html exposing (..)
 import Html.Attributes as A exposing (class)
 import Html.Events as E
 import Iso8601
 import Json.Decode as JD
+import Layout
 import Market
 import Pages.Flags exposing (Flags(..))
 import Pages.PageUrl exposing (PageUrl)
@@ -44,6 +46,7 @@ type Msg
 
 type alias Data =
     { market : Market.Market
+    , specialHolidays : List Holiday.SpecialHoliday
     }
 
 
@@ -88,7 +91,7 @@ init :
             , pageUrl : Maybe PageUrl
             }
     -> ( Model, Effect Msg )
-init flags maybePagePath =
+init flags _ =
     case flags of
         BrowserFlags value ->
             case JD.decodeValue flagsDecoder value of
@@ -125,9 +128,11 @@ subscriptions _ _ =
 
 data : BackendTask FatalError Data
 data =
-    BackendTask.File.jsonFile Market.decoder "market.json"
-        |> BackendTask.map (\market -> { market = market })
-        |> BackendTask.allowFatal
+    BackendTask.map2 Data
+        (BackendTask.File.jsonFile Market.decoder "market.json"
+            |> BackendTask.allowFatal
+        )
+        Holiday.load
 
 
 view :
@@ -140,7 +145,7 @@ view :
     -> (Msg -> msg)
     -> View msg
     -> { body : List (Html msg), title : String }
-view _ page model toMsg pageView =
+view sharedData page model toMsg pageView =
     let
         menuClass active =
             if active then
@@ -211,6 +216,19 @@ view _ page model toMsg pageView =
                     ]
                 ]
             ]
+        , case Holiday.isHoliday model.date sharedData.specialHolidays of
+            Just holiday ->
+                Layout.hero [ class "text-center py-2 bg-white" ]
+                    [ div [ class "flex flex-col md:flex-row md:space-x-4 md:tracking-normal" ] (Holiday.view holiday)
+                    ]
+
+            Nothing ->
+                Layout.hero [ class "text-center py-2 bg-white" ]
+                    [ div [ class "flex flex-col md:flex-row md:space-x-4 md:tracking-normal" ]
+                        [ div [] [ text "本日営業中" ]
+                        , div [] [ text "OPEN TODAY" ]
+                        ]
+                    ]
         , Html.main_ [ class "bg-gray-50 print:bg-white pb-20" ] pageView.body
         , viewFooter page.path
         ]
