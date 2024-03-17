@@ -225,9 +225,10 @@ view sharedData page model toMsg pageView =
             Nothing ->
                 Layout.hero [ class "text-center py-2 bg-white" ]
                     [ div [ class "flex flex-col md:flex-row md:space-x-4 md:tracking-normal" ]
-                        [ div [] [ text "本日営業中" ]
+                        [ div [] [ text "本日営業" ]
                         , div [] [ text "OPEN TODAY" ]
                         ]
+                    , div [ class "text-base tracking-normal" ] [ text "10:00am-7:00pm (WU 6:30pm)" ]
                     ]
         , Html.main_ [ class "bg-gray-50 print:bg-white pb-20" ] pageView.body
         , viewFooter page.path
