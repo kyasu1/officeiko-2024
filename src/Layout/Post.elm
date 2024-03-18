@@ -20,16 +20,24 @@ view post =
         [ Layout.hero [] [ text post.title ]
         , Layout.image [] (img [ A.src (Url.toString post.coverImage.original.url), class "w-auto h-64" ] [])
         , Layout.section []
-            [ div [ class "flex justify-end text-sm space-x-2 " ]
-                [ div [] [ text "更新日 ", text (Utils.kanjiDate post.publishedOn) ]
+            [ div [ class "flex  justify-between items-center text-sm space-x-2 " ]
+                [ tagView post.tags
+                , div [] [ text "更新日 ", text (Utils.kanjiDate post.publishedOn) ]
                 ]
             ]
         , Layout.section [] (Markdown.toHtml renderer post.body)
         ]
 
 
-
--- text <| Debug.toString news
+tagView : List Post.Tag -> Html msg
+tagView tags =
+    div [ class "flex space-x-2" ]
+        (List.map
+            (\tag ->
+                div [ class "rounded bg-gray-300 text-gray-900 px-2 py-1 font-semibold" ] [ text tag.name ]
+            )
+            tags
+        )
 
 
 renderer :
@@ -97,7 +105,7 @@ renderer =
                                         Nothing ->
                                             []
                                     , [ A.href link.destination ]
-                                    , [ class "flex items-center" ]
+                                    , [ class "inline-flex items-baseline mx-1 font-bold text-green-700 hover:underline " ]
                                     ]
                                 )
                                 (span [ class "mr-1" ] [ Outline.link [ SA.class "w-4 h-4" ] ] :: content)

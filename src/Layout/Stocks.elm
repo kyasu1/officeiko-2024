@@ -36,7 +36,7 @@ view market =
             , viewSv (Market.svRates market)
             , div [ class "text-sm print:hidden" ] [ text "`SILVER`の刻印のみの場合は原則として買取不可となります" ]
             ]
-        , section [ class "px-2 space-y-4 mb-4 print:hidden" ]
+        , section [ class "px-2 space-y-4 mb-4 print:hidden", A.id "coin" ]
             [ viewCoin market
             , div [ class "text-sm" ] [ text "その他の金貨も高価買取いたします。お気軽にお問い合わせください。" ]
             , div []
