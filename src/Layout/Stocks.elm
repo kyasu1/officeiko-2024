@@ -10,9 +10,9 @@ view : Market -> List (Html msg)
 view market =
     [ Layout.hero [ class "print:hidden" ] [ text "金・プラチナの買取と質預り価格" ]
     , article [ class "max-w-[768px] mx-auto" ]
-        [ section [ class "px-2 space-y-4 mb-4" ]
-            [ div [ class "text-right pt-4 print:pt-0" ] [ text "更新日：", text <| Market.updated market ]
-            , div [ class "text-sm grid grid-cols-[120px_1fr_1fr] md:grid-cols-[200px_1fr_1fr] w-full md:max-w-[600px] mx-auto" ]
+        [ section [ class "px-2 space-y-4 mb-4 print:space-y-0 print:mt-16" ]
+            [ div [ class "text-right pt-4 print:hidden" ] [ text "更新日：", text <| Market.updated market ]
+            , div [ class "text-sm grid grid-cols-[120px_1fr_1fr] md:grid-cols-[200px_1fr_1fr] w-full md:max-w-[600px] mx-auto print:text-xl print:pb-2" ]
                 [ div [ class "col-span-3 text-center print:hidden" ] [ text "貴金属相場" ]
                 , div [ class "text-center" ] [ text "金" ]
                 , div [ class "text-right pr-2" ] [ text (Market.gdPrice market), text "円（税込み）" ]
@@ -55,6 +55,7 @@ view market =
                     ]
                 ]
             ]
+        , section [ class "hidden print:block" ] [ div [ class "text-center font-bold text-2xl" ] [ text "更新日：", text <| Market.updated market ] ]
         ]
     ]
 
@@ -68,9 +69,9 @@ viewGd : List Market.Rate -> Html msg
 viewGd rates =
     div [ class "grid grid-cols-[200px_1fr_1fr] gap-px" ]
         ([ div [ outlineGd, class "col-span-3 bg-yellow-400 py-2 text-center text-xl font-bold print:text-base" ] [ text "金製品" ]
-         , div [ outlineGd, class "bg-yellow-400 text-center p-2 print:hidden" ] [ text "品位" ]
-         , div [ outlineGd, class "bg-yellow-400 text-center p-2 print:hidden" ] [ text "買取価額" ]
-         , div [ outlineGd, class "bg-yellow-400 text-center p-2 print:hidden" ] [ text "質預価額" ]
+         , div [ outlineGd, class "bg-yellow-400 text-center p-2" ] [ text "品位" ]
+         , div [ outlineGd, class "bg-yellow-400 text-center p-2" ] [ text "買取価額" ]
+         , div [ outlineGd, class "bg-yellow-400 text-center p-2" ] [ text "質預価額" ]
          ]
             ++ List.concat (List.map viewGdRow rates)
         )
@@ -120,9 +121,9 @@ viewSv : List Market.Rate -> Html msg
 viewSv rates =
     div [ class "grid grid-cols-[200px_1fr_1fr] gap-px" ]
         ([ div [ outlineSv, class "col-span-3 bg-gray-100 py-2 text-center text-xl font-bold print:text-base" ] [ text "シルバー" ]
-         , div [ outlineSv, class "bg-gray-100 text-center p-2" ] [ text "品位" ]
-         , div [ outlineSv, class "bg-gray-100 text-center p-2" ] [ text "買取価額" ]
-         , div [ outlineSv, class "bg-gray-100 text-center p-2" ] [ text "質預価額" ]
+         , div [ outlineSv, class "bg-gray-100 text-center p-2 print:hidden" ] [ text "品位" ]
+         , div [ outlineSv, class "bg-gray-100 text-center p-2 print:hidden" ] [ text "買取価額" ]
+         , div [ outlineSv, class "bg-gray-100 text-center p-2 print:hidden" ] [ text "質預価額" ]
          ]
             ++ List.concat (List.map viewSvRow rates)
         )

@@ -218,12 +218,12 @@ view sharedData page model toMsg pageView =
             ]
         , case Holiday.isHoliday model.date sharedData.specialHolidays of
             Just holiday ->
-                Layout.hero [ class "text-center py-2 bg-white" ]
+                Layout.hero [ class "text-center py-2 bg-white print:hidden" ]
                     [ div [ class "flex flex-col md:flex-row md:space-x-4 md:tracking-normal" ] (Holiday.view holiday)
                     ]
 
             Nothing ->
-                Layout.hero [ class "text-center py-2 bg-white" ]
+                Layout.hero [ class "text-center py-2 bg-white print:hidden" ]
                     [ div [ class "flex flex-col md:flex-row md:space-x-4 md:tracking-normal" ]
                         [ div [] [ text "本日営業" ]
                         , div [] [ text "OPEN TODAY" ]
