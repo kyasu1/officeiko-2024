@@ -216,13 +216,13 @@
         "category": "切手・印紙",
         "comment": "",
         "name": "切手バラ・50円以上",
-        "rate": 0.5
+        "rate": 0.4
       },
       {
         "category": "切手・印紙",
         "comment": "",
         "name": "切手バラ・50円未満",
-        "rate": 0.5
+        "rate": 0.2
       },
       {
         "category": "切手・印紙",
@@ -234,7 +234,7 @@
         "category": "切手・印紙",
         "comment": "",
         "name": "はがきバラ",
-        "rate": 0.5
+        "rate": 0.4
       },
       {
         "category": "切手・印紙",
