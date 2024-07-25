@@ -1,6 +1,6 @@
 {
   "ticket": {
-    "date": "2020-06-01",
+    "date": "2024-07-01",
     "items": [
       {
         "category": "商品券",
@@ -82,63 +82,51 @@
       },
       {
         "category": "ビール券",
+        "comment": "2023年10月1日発行新券",
+        "name": "ビール券（820）A-25",
+        "price": 780
+      },
+      {
+        "category": "ビール券",
+        "comment": "2023年10月1日発行新券",
+        "name": "ビール券（488）K-11",
+        "price": 460
+      },
+      {
+        "category": "ビール券",
+        "comment": "2022年10月1日発行新券",
+        "name": "ビール券（816）A-24",
+        "price": 770
+      },
+      {
+        "category": "ビール券",
+        "comment": "2022年10月1日発行新券",
+        "name": "ビール券（504）K-10",
+        "price": 470
+      },
+      {
+        "category": "ビール券",
         "comment": "2020年10月1日発行新券",
         "name": "ビール券（770）",
-        "price": 730
+        "price": 690
       },
       {
         "category": "ビール券",
         "comment": "2020年10月1日発行新券",
         "name": "ビール券（488）",
-        "price": 460
-      },
-      {
-        "category": "ビール券",
-        "comment": "2019年10月1日発行",
-        "name": "ビール券（798）",
-        "price": 750
-      },
-      {
-        "category": "ビール券",
-        "comment": "2018年4月1日発行",
-        "name": "ビール券（784）",
-        "price": 740
-      },
-      {
-        "category": "ビール券",
-        "comment": "",
-        "name": "ビール券（724）",
-        "price": 680
-      },
-      {
-        "category": "ビール券",
-        "comment": "2019年10月1日発行新券",
-        "name": "ビール券（504）",
-        "price": 460
-      },
-      {
-        "category": "ビール券",
-        "comment": "",
-        "name": "ビール券（494）",
         "price": 440
       },
       {
         "category": "その他",
         "comment": "",
-        "name": "マックカード500円",
-        "price": 450
-      },
-      {
-        "category": "その他",
-        "comment": "",
         "name": "ジェフグルメカード",
-        "price": 450
+        "price": 400
       },
       {
         "category": "その他",
         "comment": "",
         "name": "お米券540円",
-        "price": 480
+        "price": 470
       },
       {
         "category": "その他",
