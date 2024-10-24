@@ -33,9 +33,8 @@ view market =
             , div [ class "text-sm print:hidden" ] [ text "`18K/14K`刻印はX線でお調べしたうえでお買取いたします（一部買取不可あり）" ]
             , viewPt (Market.ptRates market)
             , div [ class "text-sm print:hidden" ] [ text "`Pm/PM`刻印はPt850として買取いたします" ]
-
-            -- , viewSv (Market.svRates market)
-            -- , div [ class "text-sm print:hidden" ] [ text "`SILVER`の刻印のみの場合は原則として買取不可となります" ]
+            , viewSv (Market.svRates market)
+            , div [ class "text-sm print:hidden" ] [ text "`SILVER`の刻印のみの場合は原則として買取不可となります" ]
             ]
         , section [ class "px-2 space-y-4 mb-4 print:hidden", A.id "coin" ]
             [ viewCoin market
