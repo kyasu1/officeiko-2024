@@ -117,7 +117,7 @@ gdRate (Market market) gd =
                    )
 
         K24 ->
-            calcGd market.gd 1000 200
+            calcGd market.gd 1000 300
                 |> (\price ->
                         { label = "K24"
                         , note = "純金のコイン、K24刻印のある指輪やネックレスなど"
@@ -127,7 +127,7 @@ gdRate (Market market) gd =
                    )
 
         K23 ->
-            calcGd market.gd 958 400
+            calcGd market.gd 958 500
                 |> (\price ->
                         { label = "K23"
                         , note = "イーグル金貨、クルーガーランド金貨、ブリタニア金貨、中華系のアクセサリーなど（支那金）"
@@ -137,7 +137,7 @@ gdRate (Market market) gd =
                    )
 
         K22 ->
-            calcGd market.gd 916 400
+            calcGd market.gd 916 500
                 |> (\price ->
                         { label = "K22"
                         , note = "古いコインや、中華・中東圏の国々のアクセサリーに多いです"
@@ -147,7 +147,7 @@ gdRate (Market market) gd =
                    )
 
         K21_6 ->
-            calcGd market.gd 900 400
+            calcGd market.gd 900 500
                 |> (\price ->
                         { label = "K21.6"
                         , note = "インディアンコインやイーグルコインなど米国や中南米のコインに多いです"
@@ -157,7 +157,7 @@ gdRate (Market market) gd =
                    )
 
         K20 ->
-            calcGd market.gd 833 400
+            calcGd market.gd 833 500
                 |> (\price ->
                         { label = "K20"
                         , note = "古いコインや、中華・中東圏の国々のアクセサリーに多いです"
@@ -187,7 +187,7 @@ gdRate (Market market) gd =
                    )
 
         K14 ->
-            calcGd market.gd 583 450
+            calcGd market.gd 585 450
                 |> (\price ->
                         { label = "K14"
                         , note = "ハワイアンや米国のアクセサリーに多いです。日本でも最近ではよく見かけます"
@@ -197,7 +197,7 @@ gdRate (Market market) gd =
                    )
 
         K10 ->
-            calcGd market.gd 416 500
+            calcGd market.gd 416 800
                 |> (\price ->
                         { label = "K10"
                         , note = "最近は金の高騰にともない、ファッションジュエリーなどで販売価格を抑えるために使われます"
@@ -207,7 +207,7 @@ gdRate (Market market) gd =
                    )
 
         K9 ->
-            calcGd market.gd 375 500
+            calcGd market.gd 375 800
                 |> (\price ->
                         { label = "K9"
                         , note = "最近は金の高騰にともない、ファッションジュエリーなどで販売価格を抑えるために使われます"
@@ -224,11 +224,14 @@ calcGd price purity margin =
             Decimal.mul price (Decimal.fromIntWithExponent purity -3)
 
         buyout =
-            Decimal.sub purified (Decimal.fromIntWithExponent margin 0) |> Decimal.truncate 1
+            Decimal.sub purified (Decimal.fromIntWithExponent margin 0)
+                |> Decimal.truncate 1
     in
     { buyout = buyout |> Utils.toPrice
     , pawn =
-        Decimal.mul buyout (Decimal.fromIntWithExponent 9 -1) |> Decimal.round 2 |> Utils.toPrice
+        Decimal.mul buyout (Decimal.fromIntWithExponent 9 -1)
+            |> Decimal.round 2
+            |> Utils.toPrice
     }
 
 
