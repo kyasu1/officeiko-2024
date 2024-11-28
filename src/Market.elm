@@ -229,7 +229,7 @@ calcGd price purity margin =
     in
     { buyout = buyout |> Utils.toPrice
     , pawn =
-        Decimal.mul buyout (Decimal.fromIntWithExponent 9 -1)
+        Decimal.mul buyout (Decimal.fromIntWithExponent 8 -1)
             |> Decimal.round 2
             |> Utils.toPrice
     }
