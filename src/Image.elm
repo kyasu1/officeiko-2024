@@ -94,7 +94,7 @@ imageLoader props =
     Url.Builder.crossOrigin "https://image.officeiko.work"
         [ "cdn-cgi"
         , "image"
-        , "width=" ++ String.fromInt props.width
+        , "width=" ++ String.fromInt props.width ++ ",format=avif"
         , Url.toString props.url
         ]
         []

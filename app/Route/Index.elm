@@ -230,8 +230,22 @@ view app shared =
                 , div [ class " text-red-600 font-bold" ] [ text "赤丸は休業日です" ]
                 ]
             , div [ class "flex flex-col md:flex-row md:justify-evenly" ]
-                [ div [ class "md:max-w-80" ] [ img [ A.src "https://s3-ap-northeast-1.amazonaws.com/officeiko-public/calendars/this.png" ] [] ]
-                , div [ class "md:max-w-80" ] [ img [ A.src "https://s3-ap-northeast-1.amazonaws.com/officeiko-public/calendars/next.png" ] [] ]
+                [ div [ class "md:max-w-80" ]
+                    [ img
+                        [ A.src "https://s3-ap-northeast-1.amazonaws.com/officeiko-public/calendars/this.png"
+                        , A.width 771
+                        , A.height 771
+                        ]
+                        []
+                    ]
+                , div [ class "md:max-w-80" ]
+                    [ img
+                        [ A.src "https://s3-ap-northeast-1.amazonaws.com/officeiko-public/calendars/next.png"
+                        , A.width 771
+                        , A.height 771
+                        ]
+                        []
+                    ]
                 ]
             ]
         , Layout.section []
