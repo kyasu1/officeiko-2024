@@ -1,14 +1,14 @@
 module Post exposing (Post, Tag, blogPosts, getAllPosts, newsPosts, postFromSlug)
 
 import BackendTask exposing (BackendTask)
-import BackendTask.Env
+import BackendTask.File
+import BackendTask.Glob as Glob
 import Date exposing (Date)
 import Dict exposing (Dict)
 import FatalError exposing (FatalError)
+import Image exposing (Image)
 import Json.Decode as JD
 import Json.Decode.Extra as JD exposing (collection)
-import Strapi
-import Ticket exposing (Category)
 import Utils
 
 
@@ -28,19 +28,48 @@ postFromSlug slug =
             )
 
 
-getAllPosts : Maybe CategoryType -> BackendTask FatalError (List Post)
+getAllPosts : Maybe Category -> BackendTask FatalError (List Post)
 getAllPosts maybecategoryType =
     getPosts { skip = 0, limit = 100, categoryType = maybecategoryType }
 
 
+
+--getPosts : Query -> BackendTask FatalError (List Post)
+--getPosts query =
+--    BackendTask.Env.expect "VITE_STRAPI_TOKEN"
+--        |> BackendTask.allowFatal
+--        |> BackendTask.andThen
+--            (\token ->
+--                getPostsInternal [] query token
+--            )
+
+
+postsTask : Query -> BackendTask error (List { filePath : String, slug : String })
+postsTask query =
+    Glob.succeed (\filePath slug -> { filePath = filePath, slug = slug })
+        |> Glob.captureFilePath
+        |> Glob.match (Glob.literal "content/posts/")
+        |> Glob.capture Glob.wildcard
+        |> Glob.match (Glob.literal ".md")
+        |> Glob.toBackendTask
+        |> BackendTask.map
+            (\posts ->
+                posts
+                    --|> List.filter (\post -> Just post.category == query.categoryType)
+                    |> List.drop (query.skip * query.limit)
+                    |> List.take query.limit
+            )
+
+
 getPosts : Query -> BackendTask FatalError (List Post)
 getPosts query =
-    BackendTask.Env.expect "VITE_STRAPI_TOKEN"
-        |> BackendTask.allowFatal
-        |> BackendTask.andThen
-            (\token ->
-                getPostsInternal [] query token
+    postsTask query
+        |> BackendTask.map
+            (\files ->
+                List.map (\post -> BackendTask.File.bodyWithFrontmatter postDecoder post.filePath) files
             )
+        |> BackendTask.resolve
+        |> BackendTask.allowFatal
 
 
 newsPosts : BackendTask FatalError (List Post)
@@ -56,56 +85,15 @@ blogPosts =
 type alias Query =
     { skip : Int
     , limit : Int
-    , categoryType : Maybe CategoryType
+    , categoryType : Maybe Category
     }
 
 
-getPostsInternal : List Post -> Query -> String -> BackendTask FatalError (List Post)
-getPostsInternal posts query token =
-    let
-        skipQuery =
-            if query.skip == 0 then
-                []
-
-            else
-                [ "pagination[start]=" ++ String.fromInt query.skip ]
-
-        limitQuery =
-            [ "pagination[limit]=" ++ String.fromInt query.limit ]
-
-        tagQuery =
-            case query.categoryType of
-                Just categoryType ->
-                    [ "filters[category][slug][$eq]=" ++ categoryTypeToSlug categoryType ]
-
-                Nothing ->
-                    []
-
-        params =
-            String.join "&" (List.concat [ skipQuery, limitQuery, tagQuery ])
-    in
-    Strapi.load ("/posts?populate[0]=category&populate[1]=tags&populate[2]=coverImage&sort[0]=publishedOn:desc&" ++ params)
-        (Strapi.collectionDecoder postDecoder)
-        |> BackendTask.andThen
-            (\collection ->
-                let
-                    current =
-                        (collection.meta.pagination.start + 1) * collection.meta.pagination.limit
-                in
-                if collection.meta.pagination.total > current then
-                    getPostsInternal (collection.data ++ posts) { query | skip = current } token
-
-                else
-                    BackendTask.succeed (collection.data ++ posts)
-            )
-
-
 type alias Post =
-    { id : Int
-    , title : String
+    { title : String
     , slug : String
     , body : String
-    , coverImage : Strapi.ImageSet
+    , coverImage : Image
     , author : String
     , category : Category
     , tags : List Tag
@@ -114,26 +102,34 @@ type alias Post =
 
 
 type alias Tag =
-    { id : Int
-    , name : String
+    { name : String
     , slug : String
     }
 
 
-type alias Category =
-    { id : Int
-    , name : String
-    , slug : String
-    , type_ : CategoryType
-    }
+categoryDecoder : JD.Decoder Category
+categoryDecoder =
+    JD.string
+        |> JD.andThen
+            (\s ->
+                case String.toLower s of
+                    "news" ->
+                        JD.succeed News
+
+                    "blog" ->
+                        JD.succeed Blog
+
+                    _ ->
+                        JD.fail ("Category must be `news` or `blog`, **" ++ s ++ "** is invalid")
+            )
 
 
-type CategoryType
+type Category
     = News
     | Blog
 
 
-categoryTypeToSlug : CategoryType -> String
+categoryTypeToSlug : Category -> String
 categoryTypeToSlug v =
     case v of
         News ->
@@ -143,49 +139,22 @@ categoryTypeToSlug v =
             "blog"
 
 
-postDecoder : JD.Decoder Post
-postDecoder =
+postDecoder : String -> JD.Decoder Post
+postDecoder body =
     JD.succeed Post
-        |> JD.andMap (JD.field "id" JD.int)
-        |> JD.andMap (JD.at [ "attributes", "title" ] JD.string)
-        |> JD.andMap (JD.at [ "attributes", "slug" ] JD.string)
-        |> JD.andMap (JD.at [ "attributes", "body" ] JD.string)
-        |> JD.andMap (JD.at [ "attributes", "coverImage" ] Strapi.imageSetDecoder)
+        |> JD.andMap (JD.field "title" JD.string)
+        |> JD.andMap (JD.field "slug" JD.string)
+        |> JD.andMap (JD.succeed body)
+        |> JD.andMap (JD.field "coverImage" Image.decoder)
         |> JD.andMap (JD.succeed "小松原 康行")
-        |> JD.andMap (JD.at [ "attributes", "category", "data" ] categoryDecoder)
-        |> JD.andMap (JD.at [ "attributes", "tags", "data" ] (JD.list tagDecoder))
-        -- |> JD.andMap (JD.at [ "_sys", "createdAt" ] Iso8601.decoder)
-        -- |> JD.andMap (JD.at [ "_sys", "updatedAt" ] Iso8601.decoder)
-        |> JD.andMap (JD.at [ "attributes", "publishedOn" ] Utils.dateDecoder)
-
-
-categoryDecoder : JD.Decoder Category
-categoryDecoder =
-    JD.map4 Category
-        (JD.field "id" JD.int)
-        (JD.at [ "attributes", "name" ] JD.string)
-        (JD.at [ "attributes", "slug" ] JD.string)
-        (JD.at [ "attributes", "name" ]
-            JD.string
-            |> JD.andThen
-                (\s ->
-                    case s of
-                        "News" ->
-                            JD.succeed News
-
-                        "Blog" ->
-                            JD.succeed Blog
-
-                        _ ->
-                            JD.fail ("Invalid tag string " ++ s)
-                )
-        )
+        |> JD.andMap (JD.field "category" categoryDecoder)
+        |> JD.andMap (JD.field "tags" (JD.list tagDecoder))
+        |> JD.andMap (JD.field "publishedOn" Utils.dateDecoder)
 
 
 tagDecoder : JD.Decoder Tag
 tagDecoder =
-    JD.map3 Tag
-        (JD.field "id" JD.int)
+    JD.map2 Tag
         (JD.at [ "attributes", "name" ] JD.string)
         (JD.at [ "attributes", "slug" ] JD.string)
 

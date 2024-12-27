@@ -3,6 +3,7 @@ module Layout.Post exposing (view)
 import Heroicons.Outline as Outline
 import Html exposing (..)
 import Html.Attributes as A exposing (class)
+import Image
 import Layout
 import Markdown
 import Markdown.Block as Block
@@ -18,7 +19,7 @@ view : Post -> Html msg
 view post =
     div []
         [ Layout.hero [] [ text post.title ]
-        , Layout.image [] (img [ A.src (Url.toString post.coverImage.original.url), class "w-auto h-64" ] [])
+        , Layout.image [] (Image.render post.coverImage)
         , Layout.section []
             [ div [ class "flex  justify-between items-center text-sm space-x-2 " ]
                 [ tagView post.tags

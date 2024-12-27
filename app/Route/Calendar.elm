@@ -77,7 +77,7 @@ view :
     App Data ActionData RouteParams
     -> Shared.Model
     -> View (PagesMsg Msg)
-view _ _ =
+view app _ =
     { title = "営業日カレンダー"
-    , body = Layout.Calendar.view
+    , body = Layout.Calendar.view app.sharedData.holiday
     }

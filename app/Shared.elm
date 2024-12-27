@@ -46,7 +46,7 @@ type Msg
 
 type alias Data =
     { market : Market.Market
-    , specialHolidays : List Holiday.SpecialHoliday
+    , holiday : Holiday.Holiday
     }
 
 
@@ -216,7 +216,7 @@ view sharedData page model toMsg pageView =
                     ]
                 ]
             ]
-        , case Holiday.isHoliday model.date sharedData.specialHolidays of
+        , case Holiday.isHoliday model.date sharedData.holiday of
             Just holiday ->
                 Layout.hero [ class "text-center py-2 bg-white print:hidden" ]
                     [ div [ class "flex flex-col md:flex-row md:space-x-4 md:tracking-normal" ] (Holiday.view holiday)
@@ -265,11 +265,11 @@ viewFooter path =
             , div [ class "text-center leading-loose relative" ]
                 [ Route.link [ class "text-white" ] [ text "株式会社オフイスイコー" ] Route.About
                 , p [ class "text-white text-sm" ] [ text "OPEN 10AM - 7PM" ]
-                , p [ class "text-white text-sm" ] [ text "Western Union 6:30PM" ]
+                , p [ class "text-white text-sm" ] [ text "Western Union - 6:30PM" ]
                 , p [ class "text-white text-sm" ] [ text "tel: 0120-41-1578" ]
-                , p [ class "text-sm font-thin text-white" ] [ text "Copyright © Office IKO Co. All Rigts Reserved." ]
-                , a [ class "absolute bottom-[32px] right-[10px] ", A.href (UrlPath.toRelative path) ]
-                    [ div [ class "border rouned border-white p-2 flex items-center justify-center h-12 w-12 text-2xl text-white font-thin" ]
+                , p [ class "text-sm font-thin text-white" ] [ text "Copyright © Office IKO Co. All Rights Reserved." ]
+                , a [ class "absolute bottom-[32px] right-[10px] ", A.href (UrlPath.toAbsolute path) ]
+                    [ div [ class "border rounded border-white p-2 flex items-center justify-center h-12 w-12 text-2xl text-white font-thin" ]
                         [ text "⇧" ]
                     ]
                 ]

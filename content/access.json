@@ -1,0 +1,167 @@
+{
+  "accessMap": {
+    "url": "https://image.officeiko.work/access_map.png",
+    "width": 1024,
+    "height": 535,
+    "alternativeText": "最寄り駅からのアクセス方法"
+  },
+  "description": "当店は国道4号バイパス沿いに位置しており、外環自動車道の草加インターから約2Kmです。大きな駐車場もありますのでお車でのご来店が便利です。草加方面から来られますと、反対車線側になりますので、地図をご参考のうえで、お店の前を通り過ぎて次の信号で右折して迂回されることをお勧めいたします。\n\n最寄り駅は、東武スカイツリーラインの蒲生駅または新越谷駅になります。新越谷駅はJR武蔵野線の南越谷駅と交差しており、ほぼ同じ場所にあります。\n\n蒲生駅の西口から歩きますと15分程度、新越谷駅の西口から歩きますと20分程度かかります。タクシーをご利用の場合は、常に常駐している新越谷駅が便利です。\n\nこのページでは蒲生駅および新越谷駅から徒歩でご来店いただく方法をご案内いたします。[**Google Maps**](https://maps.app.goo.gl/U8NgDF7bEXWEJLBs5)にも登録されていますので、そちらも合わせてご参照ください。",
+  "gamoTitle": "蒲生駅からのアクセス方法",
+  "gamoFields": [
+    {
+      "description": "蒲生駅の唯一の改札口を出て、右方向に進むと西口に出ます。柱に**当店の看板**が確認できます。",
+      "image": {
+        "url": "https://image.officeiko.work/coming_soon.png",
+        "width": 1600,
+        "height": 1600,
+        "alternativeText": "蒲生駅西口"
+      }
+    },
+    {
+      "description": "駅を出ましたら、右手にある**ぎょうざの満洲**さんの方向へ進み、左手に**オリジン弁当**さんが確認できます。",
+      "image": {
+        "url": "https://image.officeiko.work/coming_soon.png",
+        "width": 1600,
+        "height": 1600,
+        "alternativeText": "ぎょうざの満洲"
+      }
+    },
+    {
+      "description": "オリジン弁当さん脇の路地を約5分ほど直進します。途中に[**ジラソウ**](https://girassol.gorp.jp/)という店主お勧めの美味しい洋食屋さんがあります。\n\n![ジラソウ](https://image.officeiko.co.jp/04_0631ba026e.jpg)",
+      "image": {
+        "url": "https://image.officeiko.work/coming_soon.png",
+        "width": 1600,
+        "height": 1600,
+        "alternativeText": "オリジン弁当"
+      }
+    },
+    {
+      "description": "1つ目の信号を左折します。",
+      "image": {
+        "url": "https://image.officeiko.work/coming_soon.png",
+        "width": 1600,
+        "height": 1600,
+        "alternativeText": "交差点"
+      }
+    },
+    {
+      "description": "しばらく直進すると、**栃木銀行**が右手に見える信号がありますので、さらに直進します。",
+      "image": {
+        "url": "https://image.officeiko.work/coming_soon.png",
+        "width": 1600,
+        "height": 1600,
+        "alternativeText": "栃木銀行"
+      }
+    },
+    {
+      "description": "もう一つ信号がありますので、ここも直進します。ここから約7分程度です。",
+      "image": {
+        "url": "https://image.officeiko.work/coming_soon.png",
+        "width": 1600,
+        "height": 1600,
+        "alternativeText": "交差点"
+      }
+    },
+    {
+      "description": "途中で当店の**電柱看板**が確認できます。さらに直進、もう少しです。",
+      "image": {
+        "url": "https://image.officeiko.work/coming_soon.png",
+        "width": 1600,
+        "height": 1600,
+        "alternativeText": "電柱看板"
+      }
+    },
+    {
+      "description": "当店の入口が見えてきました。大きな質イコーの看板とイコー買取品の看板が確認できます。",
+      "image": {
+        "url": "https://image.officeiko.work/coming_soon.png",
+        "width": 1600,
+        "height": 1600,
+        "alternativeText": "店舗手前"
+      }
+    }
+  ],
+  "shinKoshigayaTitle": "新越谷駅からのアクセス方法",
+  "shinKoshigayaFields": [
+    {
+      "description": "新越谷駅はやや複雑な作りの駅です。階段を降りて西口へ出てください。西口にはタクシースタンドがあります。ここから歩くと約25分程度かかりますので、タクシーのご利用をおすすめいたします。",
+      "image": {
+        "url": "https://image.officeiko.work/coming_soon.png",
+        "width": 1600,
+        "height": 1600,
+        "alternativeText": "新越谷駅西口"
+      }
+    },
+    {
+      "description": "新越谷駅はタクシーが常時待機しておりますので、タクシーをご利用の際は便利です。徒歩ですと20-25分程度かかります。",
+      "image": {
+        "url": "https://image.officeiko.work/coming_soon.png",
+        "width": 1600,
+        "height": 1600,
+        "alternativeText": "タクシースタンド"
+      }
+    },
+    {
+      "description": "新越谷駅西口を出ますと、左斜め前にローソンとファミリーマートがありますので、歩道に沿って直進します。",
+      "image": {
+        "url": "https://image.officeiko.work/coming_soon.png",
+        "width": 1600,
+        "height": 1600,
+        "alternativeText": "ローソンとファミリーマート"
+      }
+    },
+    {
+      "description": "しばらく進むと右側の歩道に当店の電柱広告が確認できます。その先の変則的な交差点を道なりに右方向に進みます。",
+      "image": {
+        "url": "https://image.officeiko.work/coming_soon.png",
+        "width": 1600,
+        "height": 1600,
+        "alternativeText": "交差点"
+      }
+    },
+    {
+      "description": "先にスーパーベルクスが見える信号を渡り直進します。",
+      "image": {
+        "url": "https://image.officeiko.work/coming_soon.png",
+        "width": 1600,
+        "height": 1600,
+        "alternativeText": "スーパーベルクス"
+      }
+    },
+    {
+      "description": "しばらく直進すると、4号バイパスの案内標識が見えてきます。右手にパチンコ屋さんがあります。",
+      "image": {
+        "url": "https://image.officeiko.work/coming_soon.png",
+        "width": 1600,
+        "height": 1600,
+        "alternativeText": "パチンコ壱番館"
+      }
+    },
+    {
+      "description": "4号バイパスに付いたら、エネオスガソリンスタンドへ向かって横断歩道を渡り直進します。もうすぐです、ここから5分くらいです。",
+      "image": {
+        "url": "https://image.officeiko.work/coming_soon.png",
+        "width": 1600,
+        "height": 1600,
+        "alternativeText": "エネオスガソリンスタンド"
+      }
+    },
+    {
+      "description": "中華食堂の看板が見えてきますので、さらに直進します。",
+      "image": {
+        "url": "https://image.officeiko.work/coming_soon.png",
+        "width": 1600,
+        "height": 1600,
+        "alternativeText": "中華食堂"
+      }
+    },
+    {
+      "description": "ガソリンスタンドの先に当店の看板が見えてきました。到着です。お疲れさまでした…",
+      "image": {
+        "url": "https://image.officeiko.work/coming_soon.png",
+        "width": 1600,
+        "height": 1600,
+        "alternativeText": "コスモガソリンスタンド"
+      }
+    }]
+}

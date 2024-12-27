@@ -6,15 +6,17 @@ import Head
 import Head.Seo as Seo
 import Html exposing (..)
 import Html.Attributes as A exposing (class)
+import Image exposing (Image)
 import Layout
 import Market exposing (Market)
-import Pages.Url as Url
+import Pages.Url
 import PagesMsg exposing (PagesMsg)
 import Post exposing (Post)
 import Route
 import RouteBuilder exposing (App, StatelessRoute)
 import Settings
 import Shared
+import Url exposing (Url)
 import Utils
 import View exposing (View)
 
@@ -34,6 +36,7 @@ type alias RouteParams =
 type alias Data =
     { news : List Post
     , blog : List Post
+    , tenpoTopImage : Image
     }
 
 
@@ -55,6 +58,17 @@ data =
     BackendTask.succeed Data
         |> BackendTask.andMap Post.newsPosts
         |> BackendTask.andMap Post.blogPosts
+        |> BackendTask.andMap tenpoTopImageTask
+
+
+tenpoTopImageTask : BackendTask FatalError Image
+tenpoTopImageTask =
+    case Url.fromString "https://image.officeiko.work/tenpo-top-4-3.jpg" of
+        Just url ->
+            BackendTask.succeed (Image.new { url = url, width = 1600, height = 900 })
+
+        Nothing ->
+            BackendTask.fail (FatalError.fromString "Err")
 
 
 head :
@@ -82,12 +96,13 @@ view app shared =
         [ Layout.section []
             [ div [ class "flex flex-col lg:flex-row lg:space-x-4" ]
                 [ div [ class "w-full lg:w-1/2" ]
-                    [ img
-                        [ A.src "https://image.officeiko.co.jp/top_tenpo_4_3_3261f260d9.jpg"
-                        , A.alt "質イコーの外観"
-                        ]
-                        []
-                    ]
+                    --[ img
+                    --    [ A.src "https://image.officeiko.co.jp/top-tenpo-4-3.jpg"
+                    --    , A.alt "質イコーの外観"
+                    --    ]
+                    --    []
+                    --]
+                    [ Image.render app.data.tenpoTopImage ]
                 , viewMarket app.sharedData.market
                 ]
             ]
@@ -178,12 +193,7 @@ view app shared =
                     div [ class "py-4" ]
                         [ div [ class "mb-4" ]
                             [ Route.link []
-                                [ img
-                                    [ A.src
-                                        (Url.toString post.coverImage.thumbnail.url)
-                                    , class "border hover:opacity-80"
-                                    ]
-                                    []
+                                [ Image.render post.coverImage
                                 ]
                                 (Route.Post__Slug_ { slug = post.slug })
                             ]

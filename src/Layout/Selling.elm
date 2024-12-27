@@ -1,40 +1,39 @@
 module Layout.Selling exposing (..)
 
 import BackendTask exposing (BackendTask)
+import BackendTask.File as File
 import FatalError exposing (FatalError)
 import Html exposing (..)
 import Html.Attributes as A exposing (class)
+import Image
 import Json.Decode as JD
+import JsonFile
 import Layout
 import Markdown
 import Markdown.Block
 import Markdown.Html
 import Markdown.Renderer
-import Route
-import Strapi
-import UrlPath
 
 
 load : BackendTask FatalError Selling
 load =
-    Strapi.load "/page-selling?populate[0]=items.image" decoder
+    File.jsonFile decoder "./content/selling.json"
+        |> BackendTask.allowFatal
 
 
 type alias Selling =
     { title : String
     , description : String
-    , items : List Strapi.Field
+    , items : List JsonFile.Field
     }
 
 
 decoder : JD.Decoder Selling
 decoder =
-    JD.at [ "data", "attributes" ]
-        (JD.map3 Selling
-            (JD.field "title" JD.string)
-            (JD.field "description" JD.string)
-            (JD.field "items" (JD.list Strapi.fieldDecoder))
-        )
+    JD.map3 Selling
+        (JD.field "title" JD.string)
+        (JD.field "description" JD.string)
+        (JD.field "items" (JD.list JsonFile.decoder))
 
 
 view : Selling -> Html msg
@@ -50,7 +49,7 @@ view data =
         ]
 
 
-rows : ( Strapi.Field, Maybe Strapi.Field ) -> List (Html msg)
+rows : ( JsonFile.Field, Maybe JsonFile.Field ) -> List (Html msg)
 rows ( left, maybeRight ) =
     List.concat
         [ [ row Left left
@@ -65,7 +64,7 @@ rows ( left, maybeRight ) =
         ]
 
 
-row : Alignment -> Strapi.Field -> Html msg
+row : Alignment -> JsonFile.Field -> Html msg
 row alignment item =
     div [ class "grid grid-cols-1 md:grid-cols-3 items-center" ]
         [ div
@@ -78,7 +77,7 @@ row alignment item =
                     class "md:order-last"
             ]
             [ div [ class "w-full max-w-[240px] border border-black" ]
-                [ Strapi.renderImageSet item.image
+                [ Image.render item.image
                 ]
             ]
         , div [ class "md:col-span-2 bg-white w-full h-full p-4 shadow-sm" ]

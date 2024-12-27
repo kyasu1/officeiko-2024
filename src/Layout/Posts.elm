@@ -2,6 +2,7 @@ module Layout.Posts exposing (view)
 
 import Html exposing (..)
 import Html.Attributes as A exposing (class)
+import Image
 import Layout
 import Pages.Url as Url
 import Post exposing (Post, Tag)
@@ -26,15 +27,7 @@ postView post =
     div [ class "flex md:space-x flex-col md:flex-row items-center shadow-sm" ]
         [ div [ class "md:shrink-0 md:border-r" ]
             [ link
-                (img
-                    [ A.src
-                        (Url.toString
-                            post.coverImage.original.url
-                        )
-                    , class "md:h-48 shadow-sm"
-                    ]
-                    []
-                )
+                (Image.render post.coverImage)
             ]
         , div [ class "bg-white h-48 w-full overflow-hidden p-4 md:flex-1" ]
             [ div [ class "flex space-x-2 items-center" ] (listTags post.tags ++ [ div [] [ text (Utils.kanjiDate post.publishedOn) ] ])

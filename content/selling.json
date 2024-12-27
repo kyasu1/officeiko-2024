@@ -1,0 +1,138 @@
+{
+  "title": "取扱商品",
+  "description": "当店では様々な商品をお取り扱いしております。ほとんどのお品物は、買取だけではなく、質預かりで[ご融資](/pawn)する際の担保（質草）になります。買取の際は原則としてその場で**現金**にてお支払いをいたします。",
+  "items": [
+    {
+      "description": "当店では様々な商品をお取り扱いしております。ほとんどのお品物は、買取だけではなく、質預かりで[ご融資](/pawn)する際の担保（質草）になります。買取の際は原則としてその場で**現金**にてお支払いをいたします。",
+      "image": {
+        "url": "https://image.officeiko.work/items/metal.jpg",
+        "width": 1600,
+        "height": 1600,
+        "mime": "image/jpeg",
+        "alternativeText": "貴金属の写真"
+      },
+      "step": 1
+    },
+    {
+      "description": "### 時計\n\nロレックスやオメガ、タグ・ホイヤーなどの海外高級ブランド、グランドセイコーやカシオなどと幅広くお取り扱いしています。使用感が少なく状態の良い個体はより高い査定が期待できます。\n\n近年では、世界的な需要の高まりもあり、箱や保証書の有無により査定金額に大きな差が出ますので、付属品がある場合には必ずお持ちください。電池切れや故障した状態でも買取可能ですのでご相談ください。",
+      "image": {
+        "url": "https://image.officeiko.work/items/watch.jpg",
+        "width": 1000,
+        "height": 1000,
+        "mime": "image/jpeg",
+        "alternativeText": "時計の写真"
+      },
+      "step": 2
+    },
+    {
+      "description": "### ブランド品\n\nルイヴィトン、シャネル、エルメス、グッチなどのバッグや財布小物類のお取り扱いが多いです。最近は、バレンシアガやサンローラン、ディオールなども高いです。購入時に付いてた、ブランドの保存袋や保証書などがありましたら必ず一緒にお持ちください。\n\n<span class=\"text-pink-500\">ルイヴィトンやシャネルであれば、古くて大きく傷んだ品物でも買取可能ですので、まずは拝見させてください。</span>\n",
+      "image": {
+        "url": "https://image.officeiko.work/items/bag.jpg",
+        "width": 1000,
+        "height": 1000,
+        "mime": "image/jpeg",
+        "alternativeText": "バッグの写真"
+      },
+      "step": 3
+    },
+    {
+      "description": "### ジュエリー\n\n金相場の上昇により、ブランドジュエリーもどんどん高くなっています。カルティエ・ブルガリ・ティファニーなどのお取り扱いが多いです。付属品がある場合には必ずお持ちください。ノンブランドでもダイヤの付いたデザインの良いファッションジュエリーであればプラス査定が期待できます。結婚指輪や婚約指輪などでネーム刻印が入っている物も買取可能です。",
+      "image": {
+        "url": "https://image.officeiko.work/items/metal.jpg",
+        "width": 1600,
+        "height": 1600,
+        "mime": "image/jpeg",
+        "alternativeText": "貴金属の写真"
+      },
+      "step": 4
+    },
+    {
+      "description": "### ダイヤモンド\n\nルースダイヤ（裸石）、指輪やネックレスなどの一粒石であれば高額な査定が期待できます。価格はダイヤモンドの大きさとクオリティによって大きく変化します。鑑定書があれば必ずお持ちください。鑑定書が無い場合でも、熟練の鑑定士が的確に査定します。カラーダイヤや大粒のダイヤモンドは、鑑定機関でのソーティングをおすすめいたします。買取成立時のソーティング費用は当社で負担いたします。お預かりから10営業日程度を要します。",
+      "image": {
+        "url": "https://image.officeiko.work/items/diamond.jpg",
+        "width": 1000,
+        "height": 1000,
+        "mime": "image/jpeg",
+        "alternativeText": "ダイアモンドの写真"
+      },
+      "step": 5
+    },
+    {
+      "description": "### 宝石・色石\n\n大きめのエメラルド・サファイア・ルビーをあしらったジュエリーが高いです。作家物やデザインの良いお品物はプラス査定が期待できます。最近はでは、上質なあこや真珠のネックレスが以前に比べて高いです。鑑別書がありましたら必ずお持ちください。取り巻きのメレダイヤなどもプラス査定になります。",
+      "image": {
+        "url": "https://image.officeiko.work/items/stone.jpg",
+        "width": 1000,
+        "height": 1000,
+        "mime": "image/jpeg",
+        "alternativeText": "色石リングの写真"
+      },
+      "step": 6
+    },
+    {
+      "description": "### スマホ・パソコン\n\nスマートフォンやタブレットにノートパソコン、主にApple製品が多く、新品・中古を問わずにお取り扱い可能です。査定時に動作確認が必要ですので、充電された状態でお持ちください。また、パスコードやアクティベーションロックは解除した状態でお持ちください。専用の充電器やケーブルが付属していないとお買取ができない場合があります。\n\n",
+      "image": {
+        "url": "https://image.officeiko.work/items/smart.jpg",
+        "width": 1000,
+        "height": 1000,
+        "mime": "image/jpeg",
+        "alternativeText": "スマホの写真"
+      },
+      "step": 7
+    },
+    {
+      "description": "### カメラ\n\nソニー・キャノン・ニコン等のデジタル一眼レフ、コンデジのお取り扱いが多いです。古いフィルムカメラもお取り扱いしておりますが、入門機や普及価格帯のモデルはお値段がつかない場合があります。\n\n古いレンズに価値がある場合があります。カビ・クモリの有無によって大きく金額が変わります。\n\n<span class=\"text-red-500\">充電器やバッテリーなどの付属品は必ずお持ちください。</span>",
+      "image": {
+        "url": "https://image.officeiko.work/coming_soon.png",
+        "width": 1600,
+        "height": 1600,
+        "mime": "image/jpeg",
+        "alternativeText": "カメラの写真"
+      },
+      "step": 8
+    },
+    {
+      "description": "### 楽器\n\n国内外一流メーカーの、ギター・ベース・管楽器・キーボードなどを各種お取り扱いしております。ケースや付属品は必ずお持ちください。質預かりでのご利用される方が多いです。\n\n<span class=\"text-color-500\">嵩張り物や重量物はお断りする場合があります</span>",
+      "image": {
+        "url": "https://image.officeiko.work/coming_soon.png",
+        "width": 1600,
+        "height": 1600,
+        "mime": "image/jpeg",
+        "alternativeText": "楽器の写真"
+      },
+      "step": 9
+    },
+    {
+      "description": "### 工具\n\nマキタやハイコーキの充電式インパクトドライバのお取り扱いが多いです。新品・中古問わずお取り扱いします。バッテリーの有無・状態の良し悪しによって大きく査定額が変わります。\n\n<span class=\"text-red-500\">嵩張り物や重量物、古いコンプレッサーやエアツールはお断りす場合があります。</span>",
+      "image": {
+        "url": "https://image.officeiko.work/items/tool.jpg",
+        "width": 1600,
+        "height": 1600,
+        "mime": "image/jpeg",
+        "alternativeText": "インパクトドライバの写真"
+      },
+      "step": 10
+    },
+    {
+      "description": "### 鉄道模型\n\nNゲージやHOゲージ、車両やレール、ストラクチャーなども買取させていただきます。HOゲージの車両や、Nゲージの車輌セットなど、高価格帯のお品物であれば質預かりも可能です。\n\n<span class=\"text-red-500\">大量にお持ち込みの場合は、査定にお時間を要しますので、一時預かりにてご対応させていただく場合がございます。</span>",
+      "image": {
+        "url": "https://image.officeiko.work/items/hobby.jpg",
+        "width": 1600,
+        "height": 1600,
+        "mime": "image/jpeg",
+        "alternativeText": "貴金属の写真"
+      },
+      "step": 11
+    },
+    {
+      "description": "### 金券\n\n商品券、ギフト券、旅行券、切手やテレカなど、各種金券を高価買取しております。詳細は[リスト](/kaitori-ticket)をご参照ください。リストにない商品もお調べしますので、お気軽にお問合せください。\n\n<span class=\"text-red-500\">大量の切手類は査定にお時間を要するため、一時預かりににて査定せていただく場合がございます。</span>\n\n<span class=\"text-red-500\">原則として金券類の質預かりはお取り扱いしていません。</span>",
+      "image": {
+        "url": "https://image.officeiko.work/items/ticket.jpg",
+        "width": 1000,
+        "height": 1000,
+        "mime": "image/jpeg",
+        "alternativeText": "金券の写真"
+      },
+      "step": 12
+    }
+  ]
+}

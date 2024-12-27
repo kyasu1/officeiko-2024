@@ -1,12 +1,14 @@
 module Layout.Calendar exposing (view)
 
+import Holiday exposing (Holiday)
 import Html exposing (..)
 import Html.Attributes as A exposing (class)
+import Image
 import Layout
 
 
-view : List (Html msg)
-view =
+view : Holiday -> List (Html msg)
+view holiday =
     [ Layout.hero [ class "space-y-2 py-2" ]
         [ h2 [ class "text-center font-bold text-2xl" ] [ text "営業日カレンダー" ]
         , h3 [ class "text-center font-bold text-xl" ] [ text "OPENING CALENDAR" ]
@@ -46,7 +48,20 @@ view =
                 ]
             ]
         ]
-    , Layout.section []
-        [ div [] [ text "特別なお知らせ：" ]
-        ]
+    , case holiday.notice of
+        Just notice ->
+            Layout.section []
+                [ h4 [ class "font-bold text-xl text-center" ] [ text "特別なお知らせ：", text notice.message ]
+                , div [ class "print:hidden" ]
+                    [ case notice.image of
+                        Just image ->
+                            Image.render image
+
+                        Nothing ->
+                            text ""
+                    ]
+                ]
+
+        Nothing ->
+            text ""
     ]

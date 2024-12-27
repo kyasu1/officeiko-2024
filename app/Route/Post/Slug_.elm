@@ -10,6 +10,7 @@ import BackendTask exposing (BackendTask)
 import FatalError exposing (FatalError)
 import Head
 import Head.Seo as Seo
+import Image
 import Layout.Post
 import PagesMsg exposing (PagesMsg)
 import Post
@@ -65,15 +66,7 @@ data routeParams =
 
 image : Post.Post -> Seo.Image
 image post =
-    { url = post.coverImage.original.url
-    , alt = post.coverImage.alternativeText |> Maybe.withDefault ""
-    , dimensions =
-        Just
-            { width = post.coverImage.original.width
-            , height = post.coverImage.original.height
-            }
-    , mimeType = Nothing
-    }
+    Image.renderSeo post.coverImage
 
 
 head :

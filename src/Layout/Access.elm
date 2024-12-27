@@ -1,52 +1,60 @@
 module Layout.Access exposing (Access, load, view)
 
 import BackendTask exposing (BackendTask)
+import BackendTask.File as File
 import FatalError exposing (FatalError)
 import Html exposing (..)
 import Html.Attributes as A exposing (class)
+import Image exposing (Image)
 import Json.Decode as JD
+import JsonFile
 import Layout
 import Markdown
 import Markdown.Block
 import Markdown.Html
 import Markdown.Renderer
-import Pages.Url
-import Strapi
 import Url
+
+
+
+--load : BackendTask FatalError Access
+--load =
+--    Strapi.load "/page-access?populate[0]=gamo.image&populate[1]=shinKoshigaya.image&populate[2]=accessMap" decoder
 
 
 load : BackendTask FatalError Access
 load =
-    Strapi.load "/page-access?populate[0]=gamo.image&populate[1]=shinKoshigaya.image&populate[2]=accessMap" decoder
+    File.jsonFile decoder "./content/access.json"
+        |> BackendTask.allowFatal
 
 
 type alias Access =
-    { accessMap : Strapi.ImageSet
+    { accessMap : Image
     , description : String
     , gamoTitle : String
-    , gamo : List Strapi.Field
+    , gamo : List JsonFile.Field
     , shinKoshigayaTitle : String
-    , shinKoshigaya : List Strapi.Field
+    , shinKoshigaya : List JsonFile.Field
     }
 
 
 decoder : JD.Decoder Access
 decoder =
-    JD.at [ "data", "attributes" ]
-        (JD.map6 Access
-            (JD.field "accessMap" Strapi.imageSetDecoder)
-            (JD.field "description" JD.string)
-            (JD.field "gamoTitle" JD.string)
-            (JD.field "gamo" (JD.list Strapi.fieldDecoder))
-            (JD.field "shinKoshigayaTitle" JD.string)
-            (JD.field "shinKoshigaya" (JD.list Strapi.fieldDecoder))
-        )
+    JD.map6 Access
+        (JD.field "accessMap" Image.decoder)
+        (JD.field "description" JD.string)
+        (JD.field "gamoTitle" JD.string)
+        (JD.field "gamoFields" (JD.list JsonFile.decoder))
+        (JD.field "shinKoshigayaTitle" JD.string)
+        (JD.field "shinKoshigayaFields" (JD.list JsonFile.decoder))
 
 
 view : Access -> List (Html msg)
 view access =
     [ Layout.hero [] [ text "Access" ]
-    , Layout.image [] (img [ A.src (Pages.Url.toString access.accessMap.original.url) ] [])
+
+    --, Layout.image [] (img [ A.src (Pages.Url.toString access.accessMap.original.url) ] [])
+    , Layout.image [] (Image.render access.accessMap)
     , Layout.section []
         [ div [ class "space-y-4" ] (Markdown.toHtml descriptionRender access.description)
         ]
@@ -57,14 +65,14 @@ view access =
     ]
 
 
-row : Strapi.Field -> Html msg
+row : JsonFile.Field -> Html msg
 row field =
     div [ class "flex flex-col-reverse md:flex-row" ]
         [ div [ class "w-full md:w-1/2 p-4" ]
             (Markdown.toHtml stepRender field.description)
 
         -- , div [ class "w-full md:w-1/2 p-4" ] [ img [ A.src (Url.toString field.image.original.url) ] [] ]
-        , div [ class "w-full md:w-1/2 p-4" ] [ Strapi.renderImageSet field.image ]
+        , div [ class "w-full md:w-1/2 p-4" ] [ Image.render field.image ]
         ]
 
 
