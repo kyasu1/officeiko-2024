@@ -230,7 +230,7 @@ view sharedData page model toMsg pageView =
                         ]
                     , div [ class "text-base tracking-normal" ] [ text "10:00am-7:00pm (WU 6:30pm)" ]
                     ]
-        , Html.main_ [ class "bg-gray-50 print:bg-white pb-20" ] pageView.body
+        , Html.main_ [ class "bg-gray-50 print:bg-white pb-20 flex-1" ] pageView.body
         , viewFooter page.path
         ]
     , title = pageView.title
@@ -239,7 +239,7 @@ view sharedData page model toMsg pageView =
 
 viewFooter : UrlPath -> Html msg
 viewFooter path =
-    footer [ class "px-6 py-14 md:pt-[40px] md:pb-[40px] bg-iko-500 print:mt-0 print:hidden" ]
+    footer [ class "px-6 py-14 md:pt-[40px] md:pb-[40px] bg-iko-500 print:mt-0 print:hidden mt-auto" ]
         [ div [ class "md:max-w-[1120px] m-auto w-full" ]
             [ div [ class "flex flex-row md:flex-col" ]
                 [ div []

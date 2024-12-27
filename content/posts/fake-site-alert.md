@@ -42,8 +42,8 @@ Google などの検索エンジンの結果に、多くの詐欺サイトが表�
 <post-image
     url="https://image.officeiko.work/safer-internet-association.png"
     width="368"
-    height="64">
-</post-image>
+    height="64" />
+
 
 [https://www.saferinternet.or.jp/akushitsu_ec_form/](https://www.saferinternet.or.jp/akushitsu_ec_form/)
 
@@ -65,7 +65,7 @@ NHK でも偽サイトに関する特集が組まれていました。とにか�
 
 #### 追記 2024 年 2 月 28 日
 
-ここ数日、複数のお客様よりお問合せがきています。当社の会社情報が盗用されたサイトで、購入されてしまったそうです。振込先が外国人の個人名だったそうです。一般的にありえませんのでご注意ください。
+ここ数日、複数のお客様よりお問合せがきています。当社の会社情報が盗用されたサイトで、購入されてしまったそうです。振込先が外国人の個人名だったそうです。このようなことは、一般的に、まずありえませんのでご注意ください。
 
 ### この件に関するお問い合わせ先
 

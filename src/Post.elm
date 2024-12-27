@@ -29,8 +29,8 @@ postFromSlug slug =
 
 
 getAllPosts : Maybe Category -> BackendTask FatalError (List Post)
-getAllPosts maybecategoryType =
-    getPosts { skip = 0, limit = 100, categoryType = maybecategoryType }
+getAllPosts maybeCategory =
+    getPosts { skip = 0, limit = 100, category = maybeCategory }
 
 
 
@@ -52,13 +52,6 @@ postsTask query =
         |> Glob.capture Glob.wildcard
         |> Glob.match (Glob.literal ".md")
         |> Glob.toBackendTask
-        |> BackendTask.map
-            (\posts ->
-                posts
-                    --|> List.filter (\post -> Just post.category == query.categoryType)
-                    |> List.drop (query.skip * query.limit)
-                    |> List.take query.limit
-            )
 
 
 getPosts : Query -> BackendTask FatalError (List Post)
@@ -69,23 +62,38 @@ getPosts query =
                 List.map (\post -> BackendTask.File.bodyWithFrontmatter postDecoder post.filePath) files
             )
         |> BackendTask.resolve
+        |> BackendTask.map
+            (\posts ->
+                posts
+                    |> List.filter
+                        (\post ->
+                            case query.category of
+                                Nothing ->
+                                    True
+
+                                Just category ->
+                                    post.category == category
+                        )
+                    |> List.drop (query.skip * query.limit)
+                    |> List.take query.limit
+            )
         |> BackendTask.allowFatal
 
 
 newsPosts : BackendTask FatalError (List Post)
 newsPosts =
-    getPosts { skip = 0, limit = 4, categoryType = Just News }
+    getPosts { skip = 0, limit = 4, category = Just News }
 
 
 blogPosts : BackendTask FatalError (List Post)
 blogPosts =
-    getPosts { skip = 0, limit = 8, categoryType = Just Blog }
+    getPosts { skip = 0, limit = 8, category = Just Blog }
 
 
 type alias Query =
     { skip : Int
     , limit : Int
-    , categoryType : Maybe Category
+    , category : Maybe Category
     }
 
 
@@ -129,8 +137,8 @@ type Category
     | Blog
 
 
-categoryTypeToSlug : Category -> String
-categoryTypeToSlug v =
+categoryToSlug : Category -> String
+categoryToSlug v =
     case v of
         News ->
             "news"
