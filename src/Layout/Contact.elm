@@ -2,14 +2,31 @@ module Layout.Contact exposing (..)
 
 import Html exposing (..)
 import Html.Attributes as A exposing (class)
+import Image exposing (Image)
 import Layout
 import Route
+import Url
 
 
 view : List (Html msg)
 view =
+    let
+        cover =
+            case Url.fromString "https://image.officeiko.work/cover_line.jpg" of
+                Just url ->
+                    Image.render
+                        (Image.new
+                            { url = url
+                            , width = 1200
+                            , height = 630
+                            }
+                        )
+
+                Nothing ->
+                    text ""
+    in
     [ Layout.hero [] [ text "お問い合わせ" ]
-    , Layout.image [] (img [ A.src "/images/cover_line.jpg" ] [])
+    , Layout.image [] cover
     , Layout.section []
         [ div []
             [ text "お問い合わせは、上記の"

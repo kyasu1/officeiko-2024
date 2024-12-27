@@ -8,10 +8,12 @@ import Decimal exposing (Decimal)
 import FatalError exposing (FatalError)
 import Html exposing (..)
 import Html.Attributes as A exposing (class)
+import Image
 import Json.Decode as JD
 import Json.Decode.Extra as JD
 import Layout
 import Ticket exposing (Category)
+import Url
 import Utils
 
 
@@ -144,8 +146,23 @@ categoryToString v =
 
 view : TicketFile -> List (Html msg)
 view file =
+    let
+        cover =
+            case Url.fromString "https://image.officeiko.work/cover_ticket.jpg" of
+                Just url ->
+                    Image.render
+                        (Image.new
+                            { url = url
+                            , width = 1600
+                            , height = 1200
+                            }
+                        )
+
+                Nothing ->
+                    text ""
+    in
     [ Layout.hero [] [ text "金券買取" ]
-    , Layout.image [] (img [ A.src "/images/item-ticket.jpg" ] [])
+    , Layout.image [] cover
     , Layout.section [ class "leading-loose" ]
         [ div [] [ text "質イコーでは商品券やギフト券、旅行券、ビール券、切手、収入印紙、テレカ、株主優待券などの金券類を1枚から買取をさせていただいております。一覧表に掲載のない場合は  お問い合わせ ください。お気軽にご利用ください！" ]
         , div [ class "font-bold" ] [ text "原則として金券類の質預かりはいたしておりません。" ]
