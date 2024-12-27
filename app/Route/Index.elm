@@ -232,7 +232,7 @@ view app shared =
             , div [ class "flex flex-col md:flex-row md:justify-evenly" ]
                 [ div [ class "md:max-w-80" ]
                     [ img
-                        [ A.src "https://s3-ap-northeast-1.amazonaws.com/officeiko-public/calendars/this.png"
+                        [ A.src "https://image.officeiko.work/calendars/this.png"
                         , A.width 771
                         , A.height 771
                         ]
@@ -240,7 +240,7 @@ view app shared =
                     ]
                 , div [ class "md:max-w-80" ]
                     [ img
-                        [ A.src "https://s3-ap-northeast-1.amazonaws.com/officeiko-public/calendars/next.png"
+                        [ A.src "https://image.officeiko.work/calendars/next.png"
                         , A.width 771
                         , A.height 771
                         ]
