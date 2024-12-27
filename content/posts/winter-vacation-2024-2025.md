@@ -32,3 +32,10 @@ If you have any questions please feel free to contact us in the opening hour.
 Thank you for your support.
 
 Office IKO Team
+
+<post-image
+    url="https://image.officeiko.work/vacation.png"
+    width="800"
+    height="800"
+    alt="冬季休業のお知らせカレンダー">
+</post-image>

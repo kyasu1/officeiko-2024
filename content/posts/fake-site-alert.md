@@ -39,7 +39,11 @@ Google などの検索エンジンの結果に、多くの詐欺サイトが表�
 
 ### 悪質 EC サイトホットライン　通報フォーム
 
-![一般社団法人セーファーインターネット協会](https://image.officeiko.work/safer-internet-association.png)
+<post-image
+    url="https://image.officeiko.work/safer-internet-association.png"
+    width="368"
+    height="64">
+</post-image>
 
 [https://www.saferinternet.or.jp/akushitsu_ec_form/](https://www.saferinternet.or.jp/akushitsu_ec_form/)
 

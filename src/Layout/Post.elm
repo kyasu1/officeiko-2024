@@ -11,6 +11,7 @@ import Markdown.Html
 import Markdown.Renderer
 import Pages.Url as Url
 import Post exposing (Post)
+import Renderers
 import Svg.Attributes as SA
 import Utils
 
@@ -94,6 +95,7 @@ renderer =
 
                                 Block.H6 ->
                                     h6 [] children
+                    , html = Renderers.render
                     , paragraph = p [ class "text-base leading-loose tracking-normal max-md:text-lg max-md:tracking-tight max-md:leading-relaxed text-gray-600 my-4" ]
                     , link =
                         \link content ->
