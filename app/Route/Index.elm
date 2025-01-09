@@ -96,12 +96,6 @@ view app shared =
         [ Layout.section []
             [ div [ class "flex flex-col lg:flex-row lg:space-x-4" ]
                 [ div [ class "w-full lg:w-1/2" ]
-                    --[ img
-                    --    [ A.src "https://image.officeiko.co.jp/top-tenpo-4-3.jpg"
-                    --    , A.alt "質イコーの外観"
-                    --    ]
-                    --    []
-                    --]
                     [ Image.render app.data.tenpoTopImage ]
                 , viewMarket app.sharedData.market
                 ]
@@ -294,7 +288,7 @@ viewMarket market =
                         ]
                     , div [ class "flex flex-row justify-between" ]
                         [ div [] [ text "K18" ]
-                        , div [] [ text (Market.gdRate market Market.K18 |> .buyout), text "円" ]
+                        , div [] [ text (Market.gdRate market Market.K18S |> .buyout), text "円" ]
                         ]
                     , div [ class "flex flex-row justify-between" ]
                         [ div [] [ text "K14" ]

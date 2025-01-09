@@ -31,7 +31,7 @@ view holiday =
             [ div [ class "md:w-1/2 print:w-1/2 flex items-center justify-center" ]
                 [ img
                     [ class "border border-black rounded print:border-transparent"
-                    , A.src "https://s3-ap-northeast-1.amazonaws.com/officeiko-public/calendars/this.png"
+                    , A.src "https://image.officeiko.work/calendars/this.png"
                     , A.width 389
                     , A.height 389
                     ]
@@ -40,7 +40,7 @@ view holiday =
             , div [ class "md:w-1/2 print:w-1/2 flex items-center justify-center" ]
                 [ img
                     [ class "border border-black rounded print:border-transparent"
-                    , A.src "https://s3-ap-northeast-1.amazonaws.com/officeiko-public/calendars/next.png"
+                    , A.src "https://image.officeiko.work/calendars/next.png"
                     , A.width 389
                     , A.height 389
                     ]
