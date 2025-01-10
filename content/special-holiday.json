@@ -11,18 +11,23 @@
       "to": "2025-01-05"
     },
     {
+      "holidayType": "temporary",
+      "from": "2025-02-16",
+      "to": "2025-02-19"
+    },
+    {
       "holidayType": "summer",
       "from": "2025-07-30",
       "to": "2025-08-06"
     }
   ],
   "notice": {
-    "message": "冬季休業（Winter Holiday）：2024-12-31 - 2025/01/05",
+    "message": "臨時休業（Temporary Closed）：2025-02-16 - 2025/02/19",
     "image": {
-      "url": "https://image.officeiko.work/vacation.png",
-      "width": 1030,
-      "height": 1030,
-      "alternativeText": "冬季休業のお知らせ"
+      "url": "https://image.officeiko.work/temporary-closed-2025.png",
+      "width": 1200,
+      "height": 200,
+      "alternativeText": "臨時休業のお知らせ"
     }
   }
 }
