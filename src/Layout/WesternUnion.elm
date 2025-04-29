@@ -150,7 +150,7 @@ view =
                     [ div [ class "py-4" ]
                         [ div [ class "font-bold" ] [ text "日本国籍の方" ]
                         , ul [ class "list-disc ml-8 text-sm" ]
-                            [ li [] [ text "運転免許証 + マイナンバー確認書類" ]
+                            [ li [] [ text "運転免許証 + マイナンバー確認書類(任意)" ]
                             , li [] [ text "マイナンバーカード" ]
                             , li [] [ text "パスポート + 居住地の証明書 + マイナンバー確認書類" ]
                             ]
@@ -158,7 +158,7 @@ view =
                     , div [ class "py-4" ]
                         [ div [ class "font-bold" ] [ text "外国籍の方" ]
                         , ul [ class "list-disc ml-8 text-sm" ]
-                            [ li [] [ text "在留カード + マイナンバー確認書類" ]
+                            [ li [] [ text "在留カード + マイナンバー確認書類（任意）" ]
                             , li [] [ text "パスポート（短期滞在者、ただし難民申請中の方はお取引ができません）" ]
                             ]
                         ]
@@ -291,22 +291,22 @@ view =
                     ]
                 ]
             ]
-        , Layout.section []
-            [ div [ class "flex justify-center" ]
-                [ iframe
-                    [ A.src "https://www.facebook.com/plugins/post.php?href=https%3A%2F%2Fwww.facebook.com%2Fwucvs%2Fposts%2Fpfbid0iJ5c2KJoNbT1Gk8GYNEWo1iShbs73fPs4tAq98LvXQ4GPNBB4aA8K4BYrCXV1eSXl&show_text=true&width=500"
-                    , A.width 500
-                    , A.height 536
-                    , class "overflow-hidden border-none"
-                    , A.attribute "scrolling" "no"
-                    , A.attribute "frameborder" "0"
-                    , A.attribute "allowfullscreen" "true"
-                    , A.attribute "allow" "autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
-                    ]
-                    []
-                ]
-            ]
 
+        -- , Layout.section []
+        --     [ div [ class "flex justify-center" ]
+        --         [ iframe
+        --             [ A.src "https://www.facebook.com/plugins/post.php?href=https%3A%2F%2Fwww.facebook.com%2Fwucvs%2Fposts%2Fpfbid0iJ5c2KJoNbT1Gk8GYNEWo1iShbs73fPs4tAq98LvXQ4GPNBB4aA8K4BYrCXV1eSXl&show_text=true&width=500"
+        --             , A.width 500
+        --             , A.height 536
+        --             , class "overflow-hidden border-none"
+        --             , A.attribute "scrolling" "no"
+        --             , A.attribute "frameborder" "0"
+        --             , A.attribute "allowfullscreen" "true"
+        --             , A.attribute "allow" "autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+        --             ]
+        --             []
+        --         ]
+        --     ]
         -- , Layout.section
         --     [ div [ class "space-y-8" ]
         --         (splitByTwo items |> List.map rows |> List.concat)
