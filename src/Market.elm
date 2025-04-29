@@ -91,7 +91,7 @@ type Gd
     | K22
     | K21_6
     | K20
-    | K18
+      -- | K18
     | K18S
     | K14
     | K10
@@ -100,7 +100,7 @@ type Gd
 
 gdRates : Market -> List Rate
 gdRates market =
-    [ AuIG, K24, K23, K22, K21_6, K20, K18, K18S, K14, K10, K9 ] |> List.map (gdRate market)
+    [ AuIG, K24, K23, K22, K21_6, K20, K18S, K14, K10, K9 ] |> List.map (gdRate market)
 
 
 gdRate : Market -> Gd -> { label : String, note : String, buyout : String, pawn : String }
@@ -166,16 +166,15 @@ gdRate (Market market) gd =
                         }
                    )
 
-        K18 ->
-            calcGd market.gd 750 100
-                |> (\price ->
-                        { label = "K18特定品"
-                        , note = "程度の良い喜平製品や小売可能なジュエリーなどはプラス査定"
-                        , buyout = price.buyout
-                        , pawn = price.pawn
-                        }
-                   )
-
+        -- K18 ->
+        --     calcGd market.gd 750 100
+        --         |> (\price ->
+        --                 { label = "K18特定品"
+        --                 , note = "程度の良い喜平製品や小売可能なジュエリーなどはプラス査定"
+        --                 , buyout = price.buyout
+        --                 , pawn = price.pawn
+        --                 }
+        --            )
         K18S ->
             calcGd market.gd 750 150
                 |> (\price ->

@@ -22,12 +22,12 @@
     }
   ],
   "notice": {
-    "message": "臨時休業（Temporary Closed）：2025-02-16 - 2025/02/19",
+    "message": "夏季休業（Summer Holiday）：2025-07-30 - 2025/08/06",
     "image": {
-      "url": "https://image.officeiko.work/temporary-closed-2025.png",
+      "url": "https://image.officeiko.work/summer-holiday-2025.png",
       "width": 1200,
       "height": 200,
-      "alternativeText": "臨時休業のお知らせ"
+      "alternativeText": "夏季休業のお知らせ"
     }
   }
 }
