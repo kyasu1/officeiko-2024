@@ -8,11 +8,13 @@ module Market exposing
     , decoder
     , gdDiff
     , gdPrice
-    , gdRate
+      -- , gdRate
+    , gdRatePercent
     , gdRates
     , ptDiff
     , ptPrice
-    , ptRate
+      -- , ptRate
+    , ptRatePercent
     , ptRates
     , svRates
     , updated
@@ -311,7 +313,10 @@ gdRatePercent (Market market) gd =
                    )
 
 
+
 -- Core calculation functions
+
+
 calcByMargin : Decimal -> Int -> Int -> Int -> { buyout : String, pawn : String }
 calcByMargin price purity margin pawnRate =
     let
@@ -348,7 +353,10 @@ calcByPercent price purity percent pawnRate =
     }
 
 
+
 -- Gold calculation functions
+
+
 calcGd : Decimal -> Int -> Int -> { buyout : String, pawn : String }
 calcGd price purity margin =
     calcByMargin price purity margin 8
@@ -480,7 +488,10 @@ ptRatePercent (Market market) pt =
                    )
 
 
+
 -- Platinum calculation functions
+
+
 calcPt : Decimal -> Int -> Int -> { buyout : String, pawn : String }
 calcPt price purity margin =
     calcByMargin price purity margin 9
@@ -574,7 +585,10 @@ svRatePercent (Market market) v =
                    )
 
 
+
 -- Silver calculation functions
+
+
 calcSv : Decimal -> Int -> Int -> { buyout : String, pawn : String }
 calcSv price purity margin =
     calcByMargin price purity margin 7
@@ -585,7 +599,10 @@ calcSvByPercent price purity percent =
     calcByPercent price purity percent 7
 
 
+
 -- Coin calculation functions
+
+
 type alias Coin =
     { label : String
     , buyout : String
