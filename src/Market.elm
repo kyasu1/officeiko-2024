@@ -166,15 +166,6 @@ gdRate (Market market) gd =
                         }
                    )
 
-        -- K18 ->
-        --     calcGd market.gd 750 100
-        --         |> (\price ->
-        --                 { label = "K18特定品"
-        --                 , note = "程度の良い喜平製品や小売可能なジュエリーなどはプラス査定"
-        --                 , buyout = price.buyout
-        --                 , pawn = price.pawn
-        --                 }
-        --            )
         K18S ->
             calcGd market.gd 750 150
                 |> (\price ->
@@ -224,6 +215,24 @@ calcGd price purity margin =
 
         buyout =
             Decimal.sub purified (Decimal.fromIntWithExponent margin 0)
+                |> Decimal.truncate 1
+    in
+    { buyout = buyout |> Utils.toPrice
+    , pawn =
+        Decimal.mul buyout (Decimal.fromIntWithExponent 8 -1)
+            |> Decimal.round 2
+            |> Utils.toPrice
+    }
+
+
+calcGdByPercent : Decimal -> Int -> Decimal -> { buyout : String, pawn : String }
+calcGdByPercent price purity percent =
+    let
+        purified =
+            Decimal.mul price (Decimal.fromIntWithExponent purity -3)
+
+        buyout =
+            Decimal.mul purified percent
                 |> Decimal.truncate 1
     in
     { buyout = buyout |> Utils.toPrice
