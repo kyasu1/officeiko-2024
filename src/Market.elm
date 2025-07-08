@@ -100,7 +100,7 @@ type Gd
 
 gdRates : Market -> List Rate
 gdRates market =
-    [ AuIG, K24, K23, K22, K21_6, K20, K18S, K14, K10, K9 ] |> List.map (gdRate market)
+    [ AuIG, K24, K23, K22, K21_6, K20, K18S, K14, K10, K9 ] |> List.map (gdRatePercent market)
 
 
 gdRate : Market -> Gd -> { label : String, note : String, buyout : String, pawn : String }
@@ -207,6 +207,110 @@ gdRate (Market market) gd =
                    )
 
 
+gdRatePercent : Market -> Gd -> { label : String, note : String, buyout : String, pawn : String }
+gdRatePercent (Market market) gd =
+    case gd of
+        AuIG ->
+            calcGdByPercent market.gd 1000 (Decimal.fromIntWithExponent 98 -2)
+                |> (\price ->
+                        { label = "AuIG"
+                        , note = "田中貴金属や徳力などのインゴット、ただし傷のある物はK24S扱いとなります"
+                        , buyout = price.buyout
+                        , pawn = price.pawn
+                        }
+                   )
+
+        K24 ->
+            calcGdByPercent market.gd 1000 (Decimal.fromIntWithExponent 97 -2)
+                |> (\price ->
+                        { label = "K24"
+                        , note = "純金のコイン、K24刻印のある指輪やネックレスなど"
+                        , buyout = price.buyout
+                        , pawn = price.pawn
+                        }
+                   )
+
+        K23 ->
+            calcGdByPercent market.gd 958 (Decimal.fromIntWithExponent 97 -2)
+                |> (\price ->
+                        { label = "K23"
+                        , note = "イーグル金貨、クルーガーランド金貨、ブリタニア金貨、中華系のアクセサリーなど（支那金）"
+                        , buyout = price.buyout
+                        , pawn = price.pawn
+                        }
+                   )
+
+        K22 ->
+            calcGdByPercent market.gd 916 (Decimal.fromIntWithExponent 97 -2)
+                |> (\price ->
+                        { label = "K22"
+                        , note = "古いコインや、中華・中東圏の国々のアクセサリーに多いです"
+                        , buyout = price.buyout
+                        , pawn = price.pawn
+                        }
+                   )
+
+        K21_6 ->
+            calcGdByPercent market.gd 900 (Decimal.fromIntWithExponent 97 -2)
+                |> (\price ->
+                        { label = "K21.6"
+                        , note = "インディアンコインやイーグルコインなど米国や中南米のコインに多いです"
+                        , buyout = price.buyout
+                        , pawn = price.pawn
+                        }
+                   )
+
+        K20 ->
+            calcGdByPercent market.gd 833 (Decimal.fromIntWithExponent 97 -2)
+                |> (\price ->
+                        { label = "K20"
+                        , note = "古いコインや、中華・中東圏の国々のアクセサリーに多いです"
+                        , buyout = price.buyout
+                        , pawn = price.pawn
+                        }
+                   )
+
+        K18S ->
+            calcGdByPercent market.gd 750 (Decimal.fromIntWithExponent 98 -2)
+                |> (\price ->
+                        { label = "K18"
+                        , note = "国内では最も一般的です。検定刻印の有無に関わらず同じ金額でお買取りします"
+                        , buyout = price.buyout
+                        , pawn = price.pawn
+                        }
+                   )
+
+        K14 ->
+            calcGdByPercent market.gd 585 (Decimal.fromIntWithExponent 95 -2)
+                |> (\price ->
+                        { label = "K14"
+                        , note = "ハワイアンや米国のアクセサリーに多いです。日本でも最近ではよく見かけます"
+                        , buyout = price.buyout
+                        , pawn = price.pawn
+                        }
+                   )
+
+        K10 ->
+            calcGdByPercent market.gd 416 (Decimal.fromIntWithExponent 88 -2)
+                |> (\price ->
+                        { label = "K10"
+                        , note = "最近は金の高騰にともない、ファッションジュエリーなどで販売価格を抑えるために使われます"
+                        , buyout = price.buyout
+                        , pawn = price.pawn
+                        }
+                   )
+
+        K9 ->
+            calcGdByPercent market.gd 375 (Decimal.fromIntWithExponent 88 -2)
+                |> (\price ->
+                        { label = "K9"
+                        , note = "最近は金の高騰にともない、ファッションジュエリーなどで販売価格を抑えるために使われます"
+                        , buyout = price.buyout
+                        , pawn = price.pawn
+                        }
+                   )
+
+
 calcGd : Decimal -> Int -> Int -> { buyout : String, pawn : String }
 calcGd price purity margin =
     let
@@ -225,8 +329,8 @@ calcGd price purity margin =
     }
 
 
-calcGdByPercent : Decimal -> Int -> Decimal -> { buyout : String, pawn : String }
-calcGdByPercent price purity percent =
+calcByPercent : Decimal -> Int -> Decimal -> Int -> { buyout : String, pawn : String }
+calcByPercent price purity percent pawnRate =
     let
         purified =
             Decimal.mul price (Decimal.fromIntWithExponent purity -3)
@@ -237,10 +341,15 @@ calcGdByPercent price purity percent =
     in
     { buyout = buyout |> Utils.toPrice
     , pawn =
-        Decimal.mul buyout (Decimal.fromIntWithExponent 8 -1)
+        Decimal.mul buyout (Decimal.fromIntWithExponent pawnRate -1)
             |> Decimal.round 2
             |> Utils.toPrice
     }
+
+
+calcGdByPercent : Decimal -> Int -> Decimal -> { buyout : String, pawn : String }
+calcGdByPercent price purity percent =
+    calcByPercent price purity percent 8
 
 
 type Pt
@@ -253,7 +362,7 @@ type Pt
 
 ptRates : Market -> List Rate
 ptRates market =
-    [ PtIG, Pt1000, Pt950, Pt900, Pt850 ] |> List.map (ptRate market)
+    [ PtIG, Pt1000, Pt950, Pt900, Pt850 ] |> List.map (ptRatePercent market)
 
 
 ptRate : Market -> Pt -> { label : String, note : String, buyout : String, pawn : String }
@@ -310,6 +419,60 @@ ptRate (Market market) pt =
                    )
 
 
+ptRatePercent : Market -> Pt -> { label : String, note : String, buyout : String, pawn : String }
+ptRatePercent (Market market) pt =
+    case pt of
+        PtIG ->
+            calcPtByPercent market.pt 1000 (Decimal.fromIntWithExponent 97 -2)
+                |> (\price ->
+                        { label = "PtIG"
+                        , note = "田中貴金属や徳力などのインゴット、ただし傷のある物はPt1000扱いとなります"
+                        , buyout = price.buyout
+                        , pawn = price.pawn
+                        }
+                   )
+
+        Pt1000 ->
+            calcPtByPercent market.pt 1000 (Decimal.fromIntWithExponent 94 -2)
+                |> (\price ->
+                        { label = "Pt1000"
+                        , note = "コイン・ネックレス・指輪等"
+                        , buyout = price.buyout
+                        , pawn = price.pawn
+                        }
+                   )
+
+        Pt950 ->
+            calcPtByPercent market.pt 950 (Decimal.fromIntWithExponent 94 -2)
+                |> (\price ->
+                        { label = "Pt950"
+                        , note = "ブランド品や結婚指輪などに多いです"
+                        , buyout = price.buyout
+                        , pawn = price.pawn
+                        }
+                   )
+
+        Pt900 ->
+            calcPtByPercent market.pt 900 (Decimal.fromIntWithExponent 100 -2)
+                |> (\price ->
+                        { label = "Pt900"
+                        , note = "指輪に使用される場合が多いです"
+                        , buyout = price.buyout
+                        , pawn = price.pawn
+                        }
+                   )
+
+        Pt850 ->
+            calcPtByPercent market.pt 850 (Decimal.fromIntWithExponent 100 -2)
+                |> (\price ->
+                        { label = "Pt850"
+                        , note = "ネックレスやブレスレットに使用される場合が多いです"
+                        , buyout = price.buyout
+                        , pawn = price.pawn
+                        }
+                   )
+
+
 calcPt : Decimal -> Int -> Int -> { buyout : String, pawn : String }
 calcPt price purity margin =
     let
@@ -323,6 +486,11 @@ calcPt price purity margin =
     , pawn =
         Decimal.mul buyout (Decimal.fromIntWithExponent 9 -1) |> Decimal.round 2 |> Utils.toPrice
     }
+
+
+calcPtByPercent : Decimal -> Int -> Decimal -> { buyout : String, pawn : String }
+calcPtByPercent price purity percent =
+    calcByPercent price purity percent 9
 
 
 
@@ -374,6 +542,40 @@ svRate (Market market) v =
                    )
 
 
+svRatePercent : Market -> Sv -> { label : String, note : String, buyout : String, pawn : String }
+svRatePercent (Market market) v =
+    case v of
+        SV1000 ->
+            calcSvByPercent market.sv 1000 (Decimal.fromIntWithExponent 70 -2)
+                |> (\price ->
+                        { label = "SV1000"
+                        , note = "インゴットや銀杯など"
+                        , buyout = price.buyout
+                        , pawn = price.pawn
+                        }
+                   )
+
+        SV950 ->
+            calcSvByPercent market.sv 950 (Decimal.fromIntWithExponent 70 -2)
+                |> (\price ->
+                        { label = "SV950"
+                        , note = "トロフィーなどに多いです"
+                        , buyout = price.buyout
+                        , pawn = price.pawn
+                        }
+                   )
+
+        SV925 ->
+            calcSvByPercent market.sv 925 (Decimal.fromIntWithExponent 70 -2)
+                |> (\price ->
+                        { label = "SV925"
+                        , note = "指輪に使用される場合が多いです"
+                        , buyout = price.buyout
+                        , pawn = price.pawn
+                        }
+                   )
+
+
 calcSv : Decimal -> Int -> Int -> { buyout : String, pawn : String }
 calcSv price purity margin =
     let
@@ -387,6 +589,11 @@ calcSv price purity margin =
     , pawn =
         Decimal.mul buyout (Decimal.fromIntWithExponent 7 -1) |> Decimal.round 1 |> Utils.toPrice
     }
+
+
+calcSvByPercent : Decimal -> Int -> Decimal -> { buyout : String, pawn : String }
+calcSvByPercent price purity percent =
+    calcByPercent price purity percent 7
 
 
 type alias Coin =
