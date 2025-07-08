@@ -311,8 +311,8 @@ gdRatePercent (Market market) gd =
                    )
 
 
-calcGd : Decimal -> Int -> Int -> { buyout : String, pawn : String }
-calcGd price purity margin =
+calcByMargin : Decimal -> Int -> Int -> Int -> { buyout : String, pawn : String }
+calcByMargin price purity margin pawnRate =
     let
         purified =
             Decimal.mul price (Decimal.fromIntWithExponent purity -3)
@@ -323,10 +323,15 @@ calcGd price purity margin =
     in
     { buyout = buyout |> Utils.toPrice
     , pawn =
-        Decimal.mul buyout (Decimal.fromIntWithExponent 8 -1)
+        Decimal.mul buyout (Decimal.fromIntWithExponent pawnRate -1)
             |> Decimal.round 2
             |> Utils.toPrice
     }
+
+
+calcGd : Decimal -> Int -> Int -> { buyout : String, pawn : String }
+calcGd price purity margin =
+    calcByMargin price purity margin 8
 
 
 calcByPercent : Decimal -> Int -> Decimal -> Int -> { buyout : String, pawn : String }
@@ -475,17 +480,7 @@ ptRatePercent (Market market) pt =
 
 calcPt : Decimal -> Int -> Int -> { buyout : String, pawn : String }
 calcPt price purity margin =
-    let
-        purified =
-            Decimal.mul price (Decimal.fromIntWithExponent purity -3)
-
-        buyout =
-            Decimal.sub purified (Decimal.fromIntWithExponent margin 0) |> Decimal.truncate 1
-    in
-    { buyout = buyout |> Utils.toPrice
-    , pawn =
-        Decimal.mul buyout (Decimal.fromIntWithExponent 9 -1) |> Decimal.round 2 |> Utils.toPrice
-    }
+    calcByMargin price purity margin 9
 
 
 calcPtByPercent : Decimal -> Int -> Decimal -> { buyout : String, pawn : String }
@@ -578,17 +573,7 @@ svRatePercent (Market market) v =
 
 calcSv : Decimal -> Int -> Int -> { buyout : String, pawn : String }
 calcSv price purity margin =
-    let
-        purified =
-            Decimal.mul price (Decimal.fromIntWithExponent purity -3)
-
-        buyout =
-            Decimal.sub purified (Decimal.fromIntWithExponent margin 0) |> Decimal.truncate 1
-    in
-    { buyout = buyout |> Utils.toPrice
-    , pawn =
-        Decimal.mul buyout (Decimal.fromIntWithExponent 7 -1) |> Decimal.round 1 |> Utils.toPrice
-    }
+    calcByMargin price purity margin 7
 
 
 calcSvByPercent : Decimal -> Int -> Decimal -> { buyout : String, pawn : String }
