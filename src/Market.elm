@@ -273,7 +273,7 @@ gdRatePercent (Market market) gd =
                    )
 
         K18S ->
-            calcGdByPercent market.gd 750 (Decimal.fromIntWithExponent 98 -2)
+            calcGdByPercent market.gd 750 (Decimal.fromIntWithExponent 97 -2)
                 |> (\price ->
                         { label = "K18"
                         , note = "国内では最も一般的です。検定刻印の有無に関わらず同じ金額でお買取りします"
