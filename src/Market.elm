@@ -105,108 +105,100 @@ gdRates market =
     [ AuIG, K24, K23, K22, K21_6, K20, K18S, K14, K10, K9 ] |> List.map (gdRatePercent market)
 
 
-gdRate : Market -> Gd -> { label : String, note : String, buyout : String, pawn : String }
-gdRate (Market market) gd =
-    case gd of
-        AuIG ->
-            calcGd market.gd 1000 100
-                |> (\price ->
-                        { label = "AuIG"
-                        , note = "田中貴金属や徳力などのインゴット、ただし傷のある物はK24S扱いとなります"
-                        , buyout = price.buyout
-                        , pawn = price.pawn
-                        }
-                   )
 
-        K24 ->
-            calcGd market.gd 1000 300
-                |> (\price ->
-                        { label = "K24"
-                        , note = "純金のコイン、K24刻印のある指輪やネックレスなど"
-                        , buyout = price.buyout
-                        , pawn = price.pawn
-                        }
-                   )
-
-        K23 ->
-            calcGd market.gd 958 500
-                |> (\price ->
-                        { label = "K23"
-                        , note = "イーグル金貨、クルーガーランド金貨、ブリタニア金貨、中華系のアクセサリーなど（支那金）"
-                        , buyout = price.buyout
-                        , pawn = price.pawn
-                        }
-                   )
-
-        K22 ->
-            calcGd market.gd 916 500
-                |> (\price ->
-                        { label = "K22"
-                        , note = "古いコインや、中華・中東圏の国々のアクセサリーに多いです"
-                        , buyout = price.buyout
-                        , pawn = price.pawn
-                        }
-                   )
-
-        K21_6 ->
-            calcGd market.gd 900 500
-                |> (\price ->
-                        { label = "K21.6"
-                        , note = "インディアンコインやイーグルコインなど米国や中南米のコインに多いです"
-                        , buyout = price.buyout
-                        , pawn = price.pawn
-                        }
-                   )
-
-        K20 ->
-            calcGd market.gd 833 500
-                |> (\price ->
-                        { label = "K20"
-                        , note = "古いコインや、中華・中東圏の国々のアクセサリーに多いです"
-                        , buyout = price.buyout
-                        , pawn = price.pawn
-                        }
-                   )
-
-        K18S ->
-            calcGd market.gd 750 150
-                |> (\price ->
-                        { label = "K18"
-                        , note = "国内では最も一般的です。検定刻印の有無に関わらず同じ金額でお買取りします"
-                        , buyout = price.buyout
-                        , pawn = price.pawn
-                        }
-                   )
-
-        K14 ->
-            calcGd market.gd 585 450
-                |> (\price ->
-                        { label = "K14"
-                        , note = "ハワイアンや米国のアクセサリーに多いです。日本でも最近ではよく見かけます"
-                        , buyout = price.buyout
-                        , pawn = price.pawn
-                        }
-                   )
-
-        K10 ->
-            calcGd market.gd 416 800
-                |> (\price ->
-                        { label = "K10"
-                        , note = "最近は金の高騰にともない、ファッションジュエリーなどで販売価格を抑えるために使われます"
-                        , buyout = price.buyout
-                        , pawn = price.pawn
-                        }
-                   )
-
-        K9 ->
-            calcGd market.gd 375 800
-                |> (\price ->
-                        { label = "K9"
-                        , note = "最近は金の高騰にともない、ファッションジュエリーなどで販売価格を抑えるために使われます"
-                        , buyout = price.buyout
-                        , pawn = price.pawn
-                        }
-                   )
+-- gdRate : Market -> Gd -> { label : String, note : String, buyout : String, pawn : String }
+-- gdRate (Market market) gd =
+--     case gd of
+--         AuIG ->
+--             calcGd market.gd 1000 100
+--                 |> (\price ->
+--                         { label = "AuIG"
+--                         , note = "田中貴金属や徳力などのインゴット、ただし傷のある物はK24S扱いとなります"
+--                         , buyout = price.buyout
+--                         , pawn = price.pawn
+--                         }
+--                    )
+--         K24 ->
+--             calcGd market.gd 1000 300
+--                 |> (\price ->
+--                         { label = "K24"
+--                         , note = "純金のコイン、K24刻印のある指輪やネックレスなど"
+--                         , buyout = price.buyout
+--                         , pawn = price.pawn
+--                         }
+--                    )
+--         K23 ->
+--             calcGd market.gd 958 500
+--                 |> (\price ->
+--                         { label = "K23"
+--                         , note = "イーグル金貨、クルーガーランド金貨、ブリタニア金貨、中華系のアクセサリーなど（支那金）"
+--                         , buyout = price.buyout
+--                         , pawn = price.pawn
+--                         }
+--                    )
+--         K22 ->
+--             calcGd market.gd 916 500
+--                 |> (\price ->
+--                         { label = "K22"
+--                         , note = "古いコインや、中華・中東圏の国々のアクセサリーに多いです"
+--                         , buyout = price.buyout
+--                         , pawn = price.pawn
+--                         }
+--                    )
+--         K21_6 ->
+--             calcGd market.gd 900 500
+--                 |> (\price ->
+--                         { label = "K21.6"
+--                         , note = "インディアンコインやイーグルコインなど米国や中南米のコインに多いです"
+--                         , buyout = price.buyout
+--                         , pawn = price.pawn
+--                         }
+--                    )
+--         K20 ->
+--             calcGd market.gd 833 500
+--                 |> (\price ->
+--                         { label = "K20"
+--                         , note = "古いコインや、中華・中東圏の国々のアクセサリーに多いです"
+--                         , buyout = price.buyout
+--                         , pawn = price.pawn
+--                         }
+--                    )
+--         K18S ->
+--             calcGd market.gd 750 150
+--                 |> (\price ->
+--                         { label = "K18"
+--                         , note = "国内では最も一般的です。検定刻印の有無に関わらず同じ金額でお買取りします"
+--                         , buyout = price.buyout
+--                         , pawn = price.pawn
+--                         }
+--                    )
+--         K14 ->
+--             calcGd market.gd 585 450
+--                 |> (\price ->
+--                         { label = "K14"
+--                         , note = "ハワイアンや米国のアクセサリーに多いです。日本でも最近ではよく見かけます"
+--                         , buyout = price.buyout
+--                         , pawn = price.pawn
+--                         }
+--                    )
+--         K10 ->
+--             calcGd market.gd 416 800
+--                 |> (\price ->
+--                         { label = "K10"
+--                         , note = "最近は金の高騰にともない、ファッションジュエリーなどで販売価格を抑えるために使われます"
+--                         , buyout = price.buyout
+--                         , pawn = price.pawn
+--                         }
+--                    )
+--         K9 ->
+--             calcGd market.gd 375 800
+--                 |> (\price ->
+--                         { label = "K9"
+--                         , note = "最近は金の高騰にともない、ファッションジュエリーなどで販売価格を抑えるために使われます"
+--                         , buyout = price.buyout
+--                         , pawn = price.pawn
+--                         }
+--                    )
 
 
 gdRatePercent : Market -> Gd -> { label : String, note : String, buyout : String, pawn : String }
@@ -355,11 +347,9 @@ calcByPercent price purity percent pawnRate =
 
 
 -- Gold calculation functions
-
-
-calcGd : Decimal -> Int -> Int -> { buyout : String, pawn : String }
-calcGd price purity margin =
-    calcByMargin price purity margin 8
+-- calcGd : Decimal -> Int -> Int -> { buyout : String, pawn : String }
+-- calcGd price purity margin =
+--     calcByMargin price purity margin 8
 
 
 calcGdByPercent : Decimal -> Int -> Decimal -> { buyout : String, pawn : String }
@@ -380,58 +370,55 @@ ptRates market =
     [ PtIG, Pt1000, Pt950, Pt900, Pt850 ] |> List.map (ptRatePercent market)
 
 
-ptRate : Market -> Pt -> { label : String, note : String, buyout : String, pawn : String }
-ptRate (Market market) pt =
-    case pt of
-        PtIG ->
-            calcPt market.pt 1000 150
-                |> (\price ->
-                        { label = "PtIG"
-                        , note = "田中貴金属や徳力などのインゴット、ただし傷のある物はPt1000扱いとなります"
-                        , buyout = price.buyout
-                        , pawn = price.pawn
-                        }
-                   )
 
-        Pt1000 ->
-            calcPt market.pt 1000 200
-                |> (\price ->
-                        { label = "Pt1000"
-                        , note = "コイン・ネックレス・指輪等"
-                        , buyout = price.buyout
-                        , pawn = price.pawn
-                        }
-                   )
-
-        Pt950 ->
-            calcPt market.pt 950 100
-                |> (\price ->
-                        { label = "Pt950"
-                        , note = "ブランド品や結婚指輪などに多いです"
-                        , buyout = price.buyout
-                        , pawn = price.pawn
-                        }
-                   )
-
-        Pt900 ->
-            calcPt market.pt 900 0
-                |> (\price ->
-                        { label = "Pt900"
-                        , note = "指輪に使用される場合が多いです"
-                        , buyout = price.buyout
-                        , pawn = price.pawn
-                        }
-                   )
-
-        Pt850 ->
-            calcPt market.pt 850 0
-                |> (\price ->
-                        { label = "Pt850"
-                        , note = "ネックレスやブレスレットに使用される場合が多いです"
-                        , buyout = price.buyout
-                        , pawn = price.pawn
-                        }
-                   )
+-- ptRate : Market -> Pt -> { label : String, note : String, buyout : String, pawn : String }
+-- ptRate (Market market) pt =
+--     case pt of
+--         PtIG ->
+--             calcPt market.pt 1000 150
+--                 |> (\price ->
+--                         { label = "PtIG"
+--                         , note = "田中貴金属や徳力などのインゴット、ただし傷のある物はPt1000扱いとなります"
+--                         , buyout = price.buyout
+--                         , pawn = price.pawn
+--                         }
+--                    )
+--         Pt1000 ->
+--             calcPt market.pt 1000 200
+--                 |> (\price ->
+--                         { label = "Pt1000"
+--                         , note = "コイン・ネックレス・指輪等"
+--                         , buyout = price.buyout
+--                         , pawn = price.pawn
+--                         }
+--                    )
+--         Pt950 ->
+--             calcPt market.pt 950 100
+--                 |> (\price ->
+--                         { label = "Pt950"
+--                         , note = "ブランド品や結婚指輪などに多いです"
+--                         , buyout = price.buyout
+--                         , pawn = price.pawn
+--                         }
+--                    )
+--         Pt900 ->
+--             calcPt market.pt 900 0
+--                 |> (\price ->
+--                         { label = "Pt900"
+--                         , note = "指輪に使用される場合が多いです"
+--                         , buyout = price.buyout
+--                         , pawn = price.pawn
+--                         }
+--                    )
+--         Pt850 ->
+--             calcPt market.pt 850 0
+--                 |> (\price ->
+--                         { label = "Pt850"
+--                         , note = "ネックレスやブレスレットに使用される場合が多いです"
+--                         , buyout = price.buyout
+--                         , pawn = price.pawn
+--                         }
+--                    )
 
 
 ptRatePercent : Market -> Pt -> { label : String, note : String, buyout : String, pawn : String }
@@ -490,11 +477,9 @@ ptRatePercent (Market market) pt =
 
 
 -- Platinum calculation functions
-
-
-calcPt : Decimal -> Int -> Int -> { buyout : String, pawn : String }
-calcPt price purity margin =
-    calcByMargin price purity margin 9
+-- calcPt : Decimal -> Int -> Int -> { buyout : String, pawn : String }
+-- calcPt price purity margin =
+--     calcByMargin price purity margin 9
 
 
 calcPtByPercent : Decimal -> Int -> Decimal -> { buyout : String, pawn : String }
