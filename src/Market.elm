@@ -499,7 +499,7 @@ type Sv
 
 svRates : Market -> List Rate
 svRates market =
-    [ SV1000, SV950, SV925 ] |> List.map (svRate market)
+    [ SV1000, SV950, SV925 ] |> List.map (svRatePercent market)
 
 
 svRate : Market -> Sv -> { label : String, note : String, buyout : String, pawn : String }
