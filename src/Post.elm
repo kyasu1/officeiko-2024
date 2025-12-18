@@ -65,6 +65,8 @@ getPosts query =
         |> BackendTask.map
             (\posts ->
                 posts
+                    |> List.sortBy (\post -> post.publishedOn |> Date.toRataDie)
+                    |> List.reverse
                     |> List.filter
                         (\post ->
                             case query.category of

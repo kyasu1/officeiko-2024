@@ -187,10 +187,11 @@ view file =
         [ tbl Beer file.items
         , div [ class "text-sm mt-2" ] [ text "その他の古いビール券についてはお問い合わせください。" ]
         ]
-    , Layout.section []
-        [ tbl Stamp file.items
-        , div [ class "text-sm mt-2" ] [ text "バラ切手は指定様式に台紙に貼っていただくと買取額がアップします。" ]
-        ]
+
+    -- , Layout.section []
+    --     [ tbl Stamp file.items
+    --     , div [ class "text-sm mt-2" ] [ text "バラ切手は指定様式に台紙に貼っていただくと買取額がアップします。" ]
+    --     ]
     , Layout.section []
         [ tbl Other file.items
         , div [ class "text-sm mt-2" ] [ text "記載のないお品物もお調べして買取させていただきますのでお気軽に  お問い合わせ ください。" ]
