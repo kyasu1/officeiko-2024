@@ -540,7 +540,7 @@ svRatePercent : Market -> Sv -> { label : String, note : String, buyout : String
 svRatePercent (Market market) v =
     case v of
         SV1000 ->
-            calcSvByPercent market.sv 1000 (Decimal.fromIntWithExponent 70 -2)
+            calcSvByPercent market.sv 1000 (Decimal.fromIntWithExponent 80 -2)
                 |> (\price ->
                         { label = "SV1000"
                         , note = "インゴットや銀杯など"
@@ -550,7 +550,7 @@ svRatePercent (Market market) v =
                    )
 
         SV950 ->
-            calcSvByPercent market.sv 950 (Decimal.fromIntWithExponent 70 -2)
+            calcSvByPercent market.sv 950 (Decimal.fromIntWithExponent 80 -2)
                 |> (\price ->
                         { label = "SV950"
                         , note = "トロフィーなどに多いです"
@@ -560,7 +560,7 @@ svRatePercent (Market market) v =
                    )
 
         SV925 ->
-            calcSvByPercent market.sv 925 (Decimal.fromIntWithExponent 70 -2)
+            calcSvByPercent market.sv 925 (Decimal.fromIntWithExponent 80 -2)
                 |> (\price ->
                         { label = "SV925"
                         , note = "指輪に使用される場合が多いです"
