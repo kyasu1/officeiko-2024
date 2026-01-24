@@ -16,7 +16,7 @@ coverImage:
 
 誠に勝手ながら、下記の期間を臨時休業とさせていただきます。
 
-## 2024-02-16 (SUN) - 2024-02-19 (WED)
+## 2025-02-16 (SUN) - 2025-02-19 (WED)
 
 期間中に期限が到来する質契約がある場合、その期限を2025年2月21日までとさせていただきます。
 
@@ -24,9 +24,9 @@ coverImage:
 
 # Closure Notice
 
-Our office is temporary closed from 16th Februrary to 19th. We will resume our business from Thursday 20th Februrary 2025.
+Our office is temporary closed from 16th February to 19th. We will resume our business from Thursday 20th February 2025.
 
-If the deadlines of your pawn contracts expire in this period, they will be extended until 21st Februrary 2025.
+If the deadlines of your pawn contracts expire in this period, they will be extended until 21st February 2025.
 
 The services of Western Union will be unavailable for this period.
 
