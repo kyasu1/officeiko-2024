@@ -1,11 +1,13 @@
 import { defineConfig } from "vite";
 import adapter from "elm-pages/adapter/netlify.js";
 import { ViteWebfontDownload } from "vite-plugin-webfont-dl";
+import tailwindcss from "@tailwindcss/vite";
 
 export default {
   vite: defineConfig({
     assetsInclude: ['/elm-pages.js'],
     plugins: [
+      tailwindcss(),
       ViteWebfontDownload([
         // "https://fonts.googleapis.com/css2?family=IBM+Plex+Mono&display=swap&subset=latin",
       ]),
