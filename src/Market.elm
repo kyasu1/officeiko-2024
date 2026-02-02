@@ -484,7 +484,7 @@ ptRatePercent (Market market) pt =
 
 calcPtByPercent : Decimal -> Int -> Decimal -> { buyout : String, pawn : String }
 calcPtByPercent price purity percent =
-    calcByPercent price purity percent 9
+    calcByPercent price purity percent 8
 
 
 
