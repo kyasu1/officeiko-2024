@@ -24,6 +24,7 @@ import Decimal exposing (Decimal)
 import Iso8601
 import Json.Decode as JD
 import Time
+import Time.Extra
 import Utils
 
 
@@ -41,10 +42,23 @@ type alias Internal =
     }
 
 
+timestampDecoder : JD.Decoder Time.Posix
+timestampDecoder =
+    JD.map3
+        (\date hour minute ->
+            date
+                |> Time.Extra.add Time.Extra.Hour (hour - 9) Time.utc
+                |> Time.Extra.add Time.Extra.Minute minute Time.utc
+        )
+        (JD.field "date" Iso8601.decoder)
+        (JD.field "hour" JD.int)
+        (JD.field "minute" JD.int)
+
+
 decoder : JD.Decoder Market
 decoder =
     JD.map6 Internal
-        (JD.field "date" Iso8601.decoder)
+        timestampDecoder
         (JD.field "gd" JD.int |> JD.map Decimal.fromInt)
         (JD.field "gd_ratio" JD.int |> JD.map Decimal.fromInt)
         (JD.field "pt" JD.int |> JD.map Decimal.fromInt)
@@ -197,24 +211,6 @@ gdRatePercent (Market market) gd =
 
 
 -- Core calculation functions
-
-
-calcByMargin : Decimal -> Int -> Int -> Int -> { buyout : String, pawn : String }
-calcByMargin price purity margin pawnRate =
-    let
-        purified =
-            Decimal.mul price (Decimal.fromIntWithExponent purity -3)
-
-        buyout =
-            Decimal.sub purified (Decimal.fromIntWithExponent margin 0)
-                |> Decimal.truncate 1
-    in
-    { buyout = buyout |> Utils.toPrice
-    , pawn =
-        Decimal.mul buyout (Decimal.fromIntWithExponent pawnRate -1)
-            |> Decimal.round 2
-            |> Utils.toPrice
-    }
 
 
 calcByPercent : Decimal -> Int -> Decimal -> Int -> { buyout : String, pawn : String }
@@ -385,11 +381,6 @@ svRatePercent (Market market) v =
 
 
 -- Silver calculation functions
-
-
-calcSv : Decimal -> Int -> Int -> { buyout : String, pawn : String }
-calcSv price purity margin =
-    calcByMargin price purity margin 7
 
 
 calcSvByPercent : Decimal -> Int -> Decimal -> { buyout : String, pawn : String }

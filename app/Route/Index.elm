@@ -9,14 +9,13 @@ import Html.Attributes as A exposing (class)
 import Image exposing (Image)
 import Layout
 import Market exposing (Market)
-import Pages.Url
 import PagesMsg exposing (PagesMsg)
 import Post exposing (Post)
 import Route
 import RouteBuilder exposing (App, StatelessRoute)
 import Settings
 import Shared
-import Url exposing (Url)
+import Url
 import Utils
 import View exposing (View)
 
@@ -74,7 +73,7 @@ tenpoTopImageTask =
 head :
     App Data ActionData RouteParams
     -> List Head.Tag
-head app =
+head _ =
     Seo.summary
         { canonicalUrlOverride = Nothing
         , siteName = "質イコー Western Union - IKO Pawnshop"
