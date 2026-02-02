@@ -205,7 +205,7 @@ gdRatePercent : Market -> Gd -> { label : String, note : String, buyout : String
 gdRatePercent (Market market) gd =
     case gd of
         AuIG ->
-            calcGdByPercent market.gd 1000 (Decimal.fromIntWithExponent 98 -2)
+            calcGdByPercent market.gd 1000 (Decimal.fromIntWithExponent 96 -2)
                 |> (\price ->
                         { label = "AuIG"
                         , note = "田中貴金属や徳力などのインゴット、ただし傷のある物はK24S扱いとなります"
@@ -215,7 +215,7 @@ gdRatePercent (Market market) gd =
                    )
 
         K24 ->
-            calcGdByPercent market.gd 1000 (Decimal.fromIntWithExponent 97 -2)
+            calcGdByPercent market.gd 1000 (Decimal.fromIntWithExponent 95 -2)
                 |> (\price ->
                         { label = "K24"
                         , note = "純金のコイン、K24刻印のある指輪やネックレスなど"
@@ -225,7 +225,7 @@ gdRatePercent (Market market) gd =
                    )
 
         K23 ->
-            calcGdByPercent market.gd 958 (Decimal.fromIntWithExponent 97 -2)
+            calcGdByPercent market.gd 958 (Decimal.fromIntWithExponent 95 -2)
                 |> (\price ->
                         { label = "K23"
                         , note = "イーグル金貨、クルーガーランド金貨、ブリタニア金貨、中華系のアクセサリーなど（支那金）"
@@ -235,7 +235,7 @@ gdRatePercent (Market market) gd =
                    )
 
         K22 ->
-            calcGdByPercent market.gd 916 (Decimal.fromIntWithExponent 97 -2)
+            calcGdByPercent market.gd 916 (Decimal.fromIntWithExponent 95 -2)
                 |> (\price ->
                         { label = "K22"
                         , note = "古いコインや、中華・中東圏の国々のアクセサリーに多いです"
@@ -245,7 +245,7 @@ gdRatePercent (Market market) gd =
                    )
 
         K21_6 ->
-            calcGdByPercent market.gd 900 (Decimal.fromIntWithExponent 97 -2)
+            calcGdByPercent market.gd 900 (Decimal.fromIntWithExponent 95 -2)
                 |> (\price ->
                         { label = "K21.6"
                         , note = "インディアンコインやイーグルコインなど米国や中南米のコインに多いです"
@@ -255,7 +255,7 @@ gdRatePercent (Market market) gd =
                    )
 
         K20 ->
-            calcGdByPercent market.gd 833 (Decimal.fromIntWithExponent 97 -2)
+            calcGdByPercent market.gd 833 (Decimal.fromIntWithExponent 95 -2)
                 |> (\price ->
                         { label = "K20"
                         , note = "古いコインや、中華・中東圏の国々のアクセサリーに多いです"
@@ -265,7 +265,7 @@ gdRatePercent (Market market) gd =
                    )
 
         K18S ->
-            calcGdByPercent market.gd 750 (Decimal.fromIntWithExponent 97 -2)
+            calcGdByPercent market.gd 750 (Decimal.fromIntWithExponent 95 -2)
                 |> (\price ->
                         { label = "K18"
                         , note = "国内では最も一般的です。検定刻印の有無に関わらず同じ金額でお買取りします"
@@ -285,7 +285,7 @@ gdRatePercent (Market market) gd =
                    )
 
         K10 ->
-            calcGdByPercent market.gd 416 (Decimal.fromIntWithExponent 88 -2)
+            calcGdByPercent market.gd 416 (Decimal.fromIntWithExponent 86 -2)
                 |> (\price ->
                         { label = "K10"
                         , note = "最近は金の高騰にともない、ファッションジュエリーなどで販売価格を抑えるために使われます"
@@ -295,7 +295,7 @@ gdRatePercent (Market market) gd =
                    )
 
         K9 ->
-            calcGdByPercent market.gd 375 (Decimal.fromIntWithExponent 88 -2)
+            calcGdByPercent market.gd 375 (Decimal.fromIntWithExponent 86 -2)
                 |> (\price ->
                         { label = "K9"
                         , note = "最近は金の高騰にともない、ファッションジュエリーなどで販売価格を抑えるために使われます"
@@ -425,7 +425,7 @@ ptRatePercent : Market -> Pt -> { label : String, note : String, buyout : String
 ptRatePercent (Market market) pt =
     case pt of
         PtIG ->
-            calcPtByPercent market.pt 1000 (Decimal.fromIntWithExponent 97 -2)
+            calcPtByPercent market.pt 1000 (Decimal.fromIntWithExponent 95 -2)
                 |> (\price ->
                         { label = "PtIG"
                         , note = "田中貴金属や徳力などのインゴット、ただし傷のある物はPt1000扱いとなります"
@@ -435,7 +435,7 @@ ptRatePercent (Market market) pt =
                    )
 
         Pt1000 ->
-            calcPtByPercent market.pt 1000 (Decimal.fromIntWithExponent 94 -2)
+            calcPtByPercent market.pt 1000 (Decimal.fromIntWithExponent 92 -2)
                 |> (\price ->
                         { label = "Pt1000"
                         , note = "コイン・ネックレス・指輪等"
@@ -445,7 +445,7 @@ ptRatePercent (Market market) pt =
                    )
 
         Pt950 ->
-            calcPtByPercent market.pt 950 (Decimal.fromIntWithExponent 94 -2)
+            calcPtByPercent market.pt 950 (Decimal.fromIntWithExponent 92 -2)
                 |> (\price ->
                         { label = "Pt950"
                         , note = "ブランド品や結婚指輪などに多いです"
@@ -455,7 +455,7 @@ ptRatePercent (Market market) pt =
                    )
 
         Pt900 ->
-            calcPtByPercent market.pt 900 (Decimal.fromIntWithExponent 100 -2)
+            calcPtByPercent market.pt 900 (Decimal.fromIntWithExponent 98 -2)
                 |> (\price ->
                         { label = "Pt900"
                         , note = "指輪に使用される場合が多いです"
@@ -465,7 +465,7 @@ ptRatePercent (Market market) pt =
                    )
 
         Pt850 ->
-            calcPtByPercent market.pt 850 (Decimal.fromIntWithExponent 100 -2)
+            calcPtByPercent market.pt 850 (Decimal.fromIntWithExponent 98 -2)
                 |> (\price ->
                         { label = "Pt850"
                         , note = "ネックレスやブレスレットに使用される場合が多いです"
