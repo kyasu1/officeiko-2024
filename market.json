@@ -1,13 +1,13 @@
 {
-  "date": "2026-02-02",
-  "hour": 15,
-  "minute": 30,
-  "gd": 22000,
-  "gd_ratio": -7381,
-  "pt": 8700,
-  "pt_ratio": -5599,
-  "sv": 350,
-  "sv_ratio": -279,
-  "pd": 8200,
-  "pd_ratio": -2354
+  "date": "2026-02-03",
+  "hour": 9,
+  "minute": 0,
+  "gd": 26028,
+  "gd_ratio": -437,
+  "pt": 11582,
+  "pt_ratio": -193,
+  "sv": 450,
+  "sv_ratio": -20,
+  "pd": 9240,
+  "pd_ratio": 523
 }
