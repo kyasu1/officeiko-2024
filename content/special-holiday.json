@@ -19,15 +19,20 @@
       "holidayType": "summer",
       "from": "2025-07-30",
       "to": "2025-08-06"
+    },
+    {
+      "holidayType": "temporary",
+      "from": "2026-03-01",
+      "to": "2026-03-04"
     }
   ],
   "notice": {
-    "message": "夏季休業（Summer Holiday）：2025-07-30 - 2025/08/06",
+    "message": "臨時休業（TEMPORARY CLOSED）：2026-03-01 - 2026/03/04",
     "image": {
-      "url": "https://image.officeiko.work/summer-holiday-2025.png",
+      "url": "https://image.officeiko.work/temporary-closed-2026.png",
       "width": 1200,
       "height": 200,
-      "alternativeText": "夏季休業のお知らせ"
+      "alternativeText": "臨時休業"
     }
   }
 }
