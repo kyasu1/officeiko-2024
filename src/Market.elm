@@ -8,13 +8,11 @@ module Market exposing
     , decoder
     , gdDiff
     , gdPrice
-      -- , gdRate
-    , gdRatePercent
+    , gdRate
     , gdRates
     , ptDiff
     , ptPrice
-      -- , ptRate
-    , ptRatePercent
+    , ptRate
     , ptRates
     , svRates
     , updated
@@ -23,6 +21,7 @@ module Market exposing
 import Decimal exposing (Decimal)
 import Iso8601
 import Json.Decode as JD
+import Json.Decode.Extra as JD
 import Time
 import Time.Extra
 import Utils
@@ -39,7 +38,132 @@ type alias Internal =
     , pt : Decimal
     , ptDiff : Decimal
     , sv : Decimal
+    , prices : Prices
     }
+
+
+type alias Prices =
+    { generation : Int
+    , golds : Golds
+    , platinums : Platinums
+    , silvers : Silvers
+    }
+
+
+
+-- price を文字列から Decimal にデコードするヘルパー
+
+
+decimalFromStringDecoder : JD.Decoder Decimal
+decimalFromStringDecoder =
+    JD.string
+        |> JD.andThen
+            (\s ->
+                case Decimal.fromString s of
+                    Just d ->
+                        JD.succeed d
+
+                    Nothing ->
+                        JD.fail ("Could not convert string '" ++ s ++ "' to Decimal.")
+            )
+
+
+pricesDecoder : JD.Decoder Prices
+pricesDecoder =
+    JD.field "generation" JD.int
+        |> JD.andThen
+            (\gen ->
+                JD.field "metals"
+                    (JD.map3 (Prices gen)
+                        goldsDecoder
+                        platinumsDecoder
+                        silversDecoder
+                    )
+            )
+
+
+type alias Golds =
+    List { gd : Gd, price : Decimal, note : String }
+
+
+type alias Platinums =
+    List { pt : Pt, price : Decimal, note : String }
+
+
+type alias Silvers =
+    List { sv : Sv, price : Decimal, note : String }
+
+
+gdFieldName : Gd -> String
+gdFieldName gd =
+    case gd of
+        K21_6 ->
+            "K21_6"
+
+        K18S ->
+            "K18"
+
+        _ ->
+            (gdToString gd).label
+
+
+decodeGdItem : Gd -> JD.Decoder { gd : Gd, price : Decimal, note : String }
+decodeGdItem gd =
+    JD.field (gdFieldName gd)
+        (JD.field "price" decimalFromStringDecoder
+            |> JD.map (\price -> { gd = gd, price = price, note = (gdToString gd).note })
+        )
+
+
+goldsDecoder : JD.Decoder Golds
+goldsDecoder =
+    JD.succeed (\a b c d e f g h i j -> [ a, b, c, d, e, f, g, h, i, j ])
+        |> JD.andMap (decodeGdItem AuIG)
+        |> JD.andMap (decodeGdItem K24)
+        |> JD.andMap (decodeGdItem K23)
+        |> JD.andMap (decodeGdItem K22)
+        |> JD.andMap (decodeGdItem K21_6)
+        |> JD.andMap (decodeGdItem K20)
+        |> JD.andMap (decodeGdItem K18S)
+        |> JD.andMap (decodeGdItem K14)
+        |> JD.andMap (decodeGdItem K10)
+        |> JD.andMap (decodeGdItem K9)
+
+
+decodePtItem : Pt -> JD.Decoder { pt : Pt, price : Decimal, note : String }
+decodePtItem pt =
+    JD.field (ptToString pt |> .label)
+        (JD.field "price" decimalFromStringDecoder
+            |> JD.map (\price -> { pt = pt, price = price, note = (ptToString pt).note })
+        )
+
+
+platinumsDecoder : JD.Decoder Platinums
+platinumsDecoder =
+    JD.map5
+        (\a b c d e -> [ a, b, c, d, e ])
+        (decodePtItem PtIG)
+        (decodePtItem Pt1000)
+        (decodePtItem Pt950)
+        (decodePtItem Pt900)
+        (decodePtItem Pt850)
+
+
+decodeSvItem : Sv -> JD.Decoder { sv : Sv, price : Decimal, note : String }
+decodeSvItem sv =
+    JD.field (svToString sv |> .label)
+        (JD.field "price" decimalFromStringDecoder
+            |> JD.map (\price -> { sv = sv, price = price, note = (svToString sv).note })
+        )
+
+
+silversDecoder : JD.Decoder Silvers
+silversDecoder =
+    JD.map3
+        (\a b c -> [ a, b, c ])
+        (decodeSvItem SV1000)
+        (decodeSvItem SV950)
+        (decodeSvItem SV925)
 
 
 timestampDecoder : JD.Decoder Time.Posix
@@ -57,19 +181,23 @@ timestampDecoder =
 
 decoder : JD.Decoder Market
 decoder =
-    JD.map6 Internal
+    JD.map7 Internal
         timestampDecoder
         (JD.field "gd" JD.int |> JD.map Decimal.fromInt)
         (JD.field "gd_ratio" JD.int |> JD.map Decimal.fromInt)
         (JD.field "pt" JD.int |> JD.map Decimal.fromInt)
         (JD.field "pt_ratio" JD.int |> JD.map Decimal.fromInt)
         (JD.field "sv" JD.int |> JD.map Decimal.fromInt)
+        (JD.field "prices" pricesDecoder)
         |> JD.map Market
 
 
 updated : Market -> String
 updated (Market market) =
-    market.timestamp |> Utils.posixToKanji
+    (market.timestamp |> Utils.posixToKanji)
+        ++ "（"
+        ++ String.fromInt market.prices.generation
+        ++ "）"
 
 
 gdPrice : Market -> String
@@ -100,6 +228,17 @@ type alias Rate =
     }
 
 
+calcPawn : Decimal -> Int -> String
+calcPawn buyout pawnRate =
+    Decimal.mul buyout (Decimal.fromIntWithExponent pawnRate -1)
+        |> Decimal.round 2
+        |> Utils.toPrice
+
+
+
+-- Gold
+
+
 type Gd
     = AuIG
     | K24
@@ -107,140 +246,96 @@ type Gd
     | K22
     | K21_6
     | K20
-      -- | K18
     | K18S
     | K14
     | K10
     | K9
 
 
-gdRates : Market -> List Rate
-gdRates market =
-    [ AuIG, K24, K23, K22, K21_6, K20, K18S, K14, K10, K9 ] |> List.map (gdRatePercent market)
-
-
-gdParams : Gd -> { purity : Int, percent : Decimal, label : String, note : String }
-gdParams gd =
+gdToString : Gd -> { label : String, note : String }
+gdToString gd =
     case gd of
         AuIG ->
-            { purity = 1000
-            , percent = Decimal.fromIntWithExponent 96 -2
-            , label = "AuIG"
+            { label = "AuIG"
             , note = "田中貴金属や徳力などのインゴット、ただし傷のある物はK24S扱いとなります"
             }
 
         K24 ->
-            { purity = 1000
-            , percent = Decimal.fromIntWithExponent 95 -2
-            , label = "K24"
+            { label = "K24"
             , note = "純金のコイン、K24刻印のある指輪やネックレスなど"
             }
 
         K23 ->
-            { purity = 958
-            , percent = Decimal.fromIntWithExponent 95 -2
-            , label = "K23"
+            { label = "K23"
             , note = "イーグル金貨、クルーガーランド金貨、ブリタニア金貨、中華系のアクセサリーなど（支那金）"
             }
 
         K22 ->
-            { purity = 916
-            , percent = Decimal.fromIntWithExponent 95 -2
-            , label = "K22"
+            { label = "K22"
             , note = "古いコインや、中華・中東圏の国々のアクセサリーに多いです"
             }
 
         K21_6 ->
-            { purity = 900
-            , percent = Decimal.fromIntWithExponent 95 -2
-            , label = "K21.6"
+            { label = "K21.6"
             , note = "インディアンコインやイーグルコインなど米国や中南米のコインに多いです"
             }
 
         K20 ->
-            { purity = 833
-            , percent = Decimal.fromIntWithExponent 95 -2
-            , label = "K20"
+            { label = "K20"
             , note = "古いコインや、中華・中東圏の国々のアクセサリーに多いです"
             }
 
         K18S ->
-            { purity = 750
-            , percent = Decimal.fromIntWithExponent 95 -2
-            , label = "K18"
+            { label = "K18"
             , note = "国内では最も一般的です。検定刻印の有無に関わらず同じ金額でお買取りします"
             }
 
         K14 ->
-            { purity = 585
-            , percent = Decimal.fromIntWithExponent 95 -2
-            , label = "K14"
+            { label = "K14"
             , note = "ハワイアンや米国のアクセサリーに多いです。日本でも最近ではよく見かけます"
             }
 
         K10 ->
-            { purity = 416
-            , percent = Decimal.fromIntWithExponent 86 -2
-            , label = "K10"
+            { label = "K10"
             , note = "最近は金の高騰にともない、ファッションジュエリーなどで販売価格を抑えるために使われます"
             }
 
         K9 ->
-            { purity = 375
-            , percent = Decimal.fromIntWithExponent 86 -2
-            , label = "K9"
+            { label = "K9"
             , note = "最近は金の高騰にともない、ファッションジュエリーなどで販売価格を抑えるために使われます"
             }
 
 
-gdRatePercent : Market -> Gd -> { label : String, note : String, buyout : String, pawn : String }
-gdRatePercent (Market market) gd =
+gdRates : Market -> List Rate
+gdRates (Market market) =
+    market.prices.golds
+        |> List.map (gdItemToRate 8)
+
+
+gdItemToRate : Int -> { gd : Gd, price : Decimal, note : String } -> Rate
+gdItemToRate pawnRate item =
     let
-        params =
-            gdParams gd
+        info =
+            gdToString item.gd
     in
-    calcGdByPercent market.gd params.purity params.percent
-        |> (\price ->
-                { label = params.label
-                , note = params.note
-                , buyout = price.buyout
-                , pawn = price.pawn
-                }
-           )
-
-
-
--- Core calculation functions
-
-
-calcByPercent : Decimal -> Int -> Decimal -> Int -> { buyout : String, pawn : String }
-calcByPercent price purity percent pawnRate =
-    let
-        purified =
-            Decimal.mul price (Decimal.fromIntWithExponent purity -3)
-
-        buyout =
-            Decimal.mul purified percent
-                |> Decimal.truncate 1
-    in
-    { buyout = buyout |> Utils.toPrice
-    , pawn =
-        Decimal.mul buyout (Decimal.fromIntWithExponent pawnRate -1)
-            |> Decimal.round 2
-            |> Utils.toPrice
+    { label = info.label
+    , note = item.note
+    , buyout = item.price |> Utils.toPrice
+    , pawn = calcPawn item.price pawnRate
     }
 
 
+gdRate : Market -> Gd -> Rate
+gdRate (Market market) gd =
+    market.prices.golds
+        |> List.filter (\item -> item.gd == gd)
+        |> List.head
+        |> Maybe.map (gdItemToRate 8)
+        |> Maybe.withDefault { label = "", note = "", buyout = "", pawn = "" }
 
--- Gold calculation functions
--- calcGd : Decimal -> Int -> Int -> { buyout : String, pawn : String }
--- calcGd price purity margin =
---     calcByMargin price purity margin 8
 
 
-calcGdByPercent : Decimal -> Int -> Decimal -> { buyout : String, pawn : String }
-calcGdByPercent price purity percent =
-    calcByPercent price purity percent 8
+-- Platinum
 
 
 type Pt
@@ -251,80 +346,65 @@ type Pt
     | Pt850
 
 
-ptRates : Market -> List Rate
-ptRates market =
-    [ PtIG, Pt1000, Pt950, Pt900, Pt850 ] |> List.map (ptRatePercent market)
-
-
-ptParams : Pt -> { purity : Int, percent : Decimal, label : String, note : String }
-ptParams pt =
+ptToString : Pt -> { label : String, note : String }
+ptToString pt =
     case pt of
         PtIG ->
-            { purity = 1000
-            , percent = Decimal.fromIntWithExponent 95 -2
-            , label = "PtIG"
+            { label = "PtIG"
             , note = "田中貴金属や徳力などのインゴット、ただし傷のある物はPt1000扱いとなります"
             }
 
         Pt1000 ->
-            { purity = 1000
-            , percent = Decimal.fromIntWithExponent 92 -2
-            , label = "Pt1000"
+            { label = "Pt1000"
             , note = "コイン・ネックレス・指輪等"
             }
 
         Pt950 ->
-            { purity = 950
-            , percent = Decimal.fromIntWithExponent 92 -2
-            , label = "Pt950"
+            { label = "Pt950"
             , note = "ブランド品や結婚指輪などに多いです"
             }
 
         Pt900 ->
-            { purity = 900
-            , percent = Decimal.fromIntWithExponent 98 -2
-            , label = "Pt900"
+            { label = "Pt900"
             , note = "指輪に使用される場合が多いです"
             }
 
         Pt850 ->
-            { purity = 850
-            , percent = Decimal.fromIntWithExponent 98 -2
-            , label = "Pt850"
+            { label = "Pt850"
             , note = "ネックレスやブレスレットに使用される場合が多いです"
             }
 
 
-ptRatePercent : Market -> Pt -> { label : String, note : String, buyout : String, pawn : String }
-ptRatePercent (Market market) pt =
+ptRates : Market -> List Rate
+ptRates (Market market) =
+    market.prices.platinums
+        |> List.map (ptItemToRate 8)
+
+
+ptItemToRate : Int -> { pt : Pt, price : Decimal, note : String } -> Rate
+ptItemToRate pawnRate item =
     let
-        params =
-            ptParams pt
+        info =
+            ptToString item.pt
     in
-    calcPtByPercent market.pt params.purity params.percent
-        |> (\price ->
-                { label = params.label
-                , note = params.note
-                , buyout = price.buyout
-                , pawn = price.pawn
-                }
-           )
+    { label = info.label
+    , note = item.note
+    , buyout = item.price |> Utils.toPrice
+    , pawn = calcPawn item.price pawnRate
+    }
+
+
+ptRate : Market -> Pt -> Rate
+ptRate (Market market) pt =
+    market.prices.platinums
+        |> List.filter (\item -> item.pt == pt)
+        |> List.head
+        |> Maybe.map (ptItemToRate 8)
+        |> Maybe.withDefault { label = "", note = "", buyout = "", pawn = "" }
 
 
 
--- Platinum calculation functions
--- calcPt : Decimal -> Int -> Int -> { buyout : String, pawn : String }
--- calcPt price purity margin =
---     calcByMargin price purity margin 9
-
-
-calcPtByPercent : Decimal -> Int -> Decimal -> { buyout : String, pawn : String }
-calcPtByPercent price purity percent =
-    calcByPercent price purity percent 8
-
-
-
---
+-- Silver
 
 
 type Sv
@@ -333,63 +413,44 @@ type Sv
     | SV925
 
 
-svRates : Market -> List Rate
-svRates market =
-    [ SV1000, SV950, SV925 ] |> List.map (svRatePercent market)
-
-
-svParams : Sv -> { purity : Int, percent : Decimal, label : String, note : String }
-svParams v =
-    case v of
+svToString : Sv -> { label : String, note : String }
+svToString sv =
+    case sv of
         SV1000 ->
-            { purity = 1000
-            , percent = Decimal.fromIntWithExponent 70 -2
-            , label = "SV1000"
+            { label = "Sv1000"
             , note = "インゴットや銀杯など"
             }
 
         SV950 ->
-            { purity = 950
-            , percent = Decimal.fromIntWithExponent 70 -2
-            , label = "SV950"
+            { label = "Sv950"
             , note = "トロフィーなどに多いです"
             }
 
         SV925 ->
-            { purity = 925
-            , percent = Decimal.fromIntWithExponent 70 -2
-            , label = "SV925"
+            { label = "Sv925"
             , note = "指輪に使用される場合が多いです"
             }
 
 
-svRatePercent : Market -> Sv -> { label : String, note : String, buyout : String, pawn : String }
-svRatePercent (Market market) v =
-    let
-        params =
-            svParams v
-    in
-    calcSvByPercent market.sv params.purity params.percent
-        |> (\price ->
-                { label = params.label
-                , note = params.note
-                , buyout = price.buyout
-                , pawn = price.pawn
+svRates : Market -> List Rate
+svRates (Market market) =
+    market.prices.silvers
+        |> List.map
+            (\item ->
+                let
+                    info =
+                        svToString item.sv
+                in
+                { label = info.label
+                , note = item.note
+                , buyout = item.price |> Utils.toPrice
+                , pawn = calcPawn item.price 7
                 }
-           )
+            )
 
 
 
--- Silver calculation functions
-
-
-calcSvByPercent : Decimal -> Int -> Decimal -> { buyout : String, pawn : String }
-calcSvByPercent price purity percent =
-    calcByPercent price purity percent 7
-
-
-
--- Coin calculation functions
+-- Coin
 
 
 type alias Coin =
