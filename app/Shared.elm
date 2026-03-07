@@ -1,19 +1,13 @@
 module Shared exposing (Data, Model, Msg(..), SharedMsg(..), template)
 
-import Accessibility.Aria as Aria
 import BackendTask exposing (BackendTask)
 import BackendTask.File
 import Date exposing (Date)
-import Decimal exposing (Decimal)
 import Effect exposing (Effect)
 import FatalError exposing (FatalError)
-import Form.Field exposing (checkbox)
-import Heroicons.Outline as Outline
 import Holiday
 import Html exposing (..)
 import Html.Attributes as A exposing (class)
-import Html.Events as E
-import Iso8601
 import Json.Decode as JD
 import Layout
 import Market
@@ -21,7 +15,6 @@ import Pages.Flags exposing (Flags(..))
 import Pages.PageUrl exposing (PageUrl)
 import Route exposing (Route)
 import SharedTemplate exposing (SharedTemplate)
-import Svg.Attributes as SA
 import Time
 import UrlPath exposing (UrlPath)
 import Utils
@@ -155,7 +148,8 @@ view sharedData page model toMsg pageView =
                 class "text-gray-900 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-bold"
     in
     { body =
-        [ nav [ class "print:hidden print:bg-white" ]
+        [ googleTagManager "GTM-55GV2Z"
+        , nav [ class "print:hidden print:bg-white" ]
             [ div [ class "mx-auto max-w-7xl px-4 sm:px-6 lg:px-8" ]
                 [ div [ class "flex h-16 justify-between" ]
                     [ div [ class "flex" ]
@@ -274,4 +268,19 @@ viewFooter path =
                     ]
                 ]
             ]
+        ]
+
+
+googleTagManager : String -> Html msg
+googleTagManager id =
+    Html.node "noscript"
+        []
+        [ Html.iframe
+            [ A.src <| "https://www.googletagmanager.com/ns.html?id=" ++ id
+            , A.height 0
+            , A.width 0
+            , A.style "display" "none"
+            , A.style "visibility" "hidden"
+            ]
+            []
         ]
