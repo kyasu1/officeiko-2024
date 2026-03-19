@@ -2,25 +2,25 @@
   "name": "elm-pages-app",
   "type": "module",
   "scripts": {
-    "postinstall": "elm-tooling install",
-    "start": "export $(cat .env | xargs) && elm-pages dev",
+    "start": "elm-pages dev",
     "build": "elm-pages build"
   },
   "devDependencies": {
     "@tailwindcss/forms": "^0.5.11",
     "@tailwindcss/vite": "^4.1.18",
+    "elm": "^0.19.1-6",
     "elm-codegen": "^0.6.3",
+    "elm-format": "^0.8.8",
     "elm-json": "^0.2.13",
     "elm-optimize-level-2": "^0.3.5",
-    "elm-pages": "^3.0.28",
+    "elm-pages": "^3.3.0",
     "elm-review": "^2.13.5",
     "elm-tooling": "^1.17.0",
     "lamdera": "^0.19.1-1.4.0",
     "tailwindcss": "^4.1.18",
-    "vite": "^7.3.1",
-    "vite-plugin-webfont-dl": "^3.11.1"
+    "vite": "^7.3.1"
   },
   "dependencies": {
-    "@netlify/functions": "^5.1.2"
+    "@netlify/functions": "^5.1.3"
   }
 }
