@@ -1,77 +1,77 @@
 {
   "date": "2026-05-28",
   "hour": 11,
-  "minute": 0,
-  "gd": 24679,
-  "gd_ratio": -549,
-  "pt": 10449,
-  "pt_ratio": -373,
+  "minute": 5,
+  "gd": 24600,
+  "gd_ratio": 0,
+  "pt": 10400,
+  "pt_ratio": 0,
   "sv": 380,
-  "sv_ratio": -35,
-  "pd": 7346,
-  "pd_ratio": -10,
+  "sv_ratio": 0,
+  "pd": 7249,
+  "pd_ratio": 0,
   "prices": {
     "generation": 2,
     "metals": {
       "AuIG": {
         "name": "純金インゴット",
-        "price": "23690"
+        "price": "23610"
       },
       "K10": {
         "name": "10金",
-        "price": "8850"
+        "price": "8820"
       },
       "K14": {
         "name": "14金",
-        "price": "13420"
+        "price": "13380"
       },
       "K18": {
         "name": "18金",
-        "price": "17580"
+        "price": "17520"
       },
       "K20": {
         "name": "20金",
-        "price": "19520"
+        "price": "19460"
       },
       "K21_6": {
         "name": "21.6金",
-        "price": "21100"
+        "price": "21030"
       },
       "K22": {
         "name": "22金",
-        "price": "21470"
+        "price": "21400"
       },
       "K23": {
         "name": "23金",
-        "price": "22460"
+        "price": "22380"
       },
       "K24": {
         "name": "純金(24金)",
-        "price": "23440"
+        "price": "23370"
       },
       "K9": {
         "name": "9金",
-        "price": "7950"
+        "price": "7930"
       },
       "Pt1000": {
         "name": "プラチナ1000",
-        "price": "9610"
+        "price": "9560"
       },
       "Pt850": {
         "name": "プラチナ850",
-        "price": "8700"
+        "price": "8660"
       },
       "Pt900": {
         "name": "プラチナ900",
-        "price": "9210"
+        "price": "9170"
       },
       "Pt950": {
         "name": "プラチナ950",
-        "price": "9130"
+        "price": "9080"
       },
       "PtIG": {
         "name": "プラチナインゴット",
-        "price": "9920"
+        "price": "9880"
       },
       "Sv": {
         "name": "銀製品",
