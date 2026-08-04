@@ -1,57 +1,57 @@
 {
-  "date": "2026-08-03",
+  "date": "2026-08-04",
   "hour": 10,
   "minute": 0,
-  "gd": 22179,
-  "gd_ratio": -768,
+  "gd": 22333,
+  "gd_ratio": 154,
   "pt": 8879,
-  "pt_ratio": -286,
-  "sv": 309,
-  "sv_ratio": -10,
-  "pd": 6336,
-  "pd_ratio": -554,
+  "pt_ratio": 0,
+  "sv": 314,
+  "sv_ratio": 5,
+  "pd": 6590,
+  "pd_ratio": 254,
   "prices": {
     "generation": 2,
     "metals": {
       "AuIG": {
         "name": "純金インゴット",
-        "price": "21290"
+        "price": "21430"
       },
       "K10": {
         "name": "10金",
-        "price": "7950"
+        "price": "8000"
       },
       "K14": {
         "name": "14金",
-        "price": "12060"
+        "price": "12150"
       },
       "K18": {
         "name": "18金",
-        "price": "15800"
+        "price": "15910"
       },
       "K20": {
         "name": "20金",
-        "price": "17550"
+        "price": "17670"
       },
       "K21_6": {
         "name": "21.6金",
-        "price": "18960"
+        "price": "19090"
       },
       "K22": {
         "name": "22金",
-        "price": "19300"
+        "price": "19430"
       },
       "K23": {
         "name": "23金",
-        "price": "20180"
+        "price": "20320"
       },
       "K24": {
         "name": "純金(24金)",
-        "price": "21070"
+        "price": "21210"
       },
       "K9": {
         "name": "9金",
-        "price": "7150"
+        "price": "7200"
       },
       "Pt1000": {
         "name": "プラチナ1000",
