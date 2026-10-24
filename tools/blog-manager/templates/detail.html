@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} | ブログ管理{% endblock %}
+{% block content %}
+<div class="mb-4">
+  <a class="btn btn-ghost btn-sm" href="/">← 一覧へ戻る</a>
+</div>
+
+{% if !error.is_empty() %}
+<div role="alert" class="alert alert-error mb-4">
+  <span>
+    {% if unparseable %}このファイルは解析できませんでした{% else %}この記事は要修正です{% endif %}: {{ error }}
+  </span>
+</div>
+{% endif %}
+
+<div class="card bg-base-100 shadow mb-4">
+  <div class="card-body">
+    <div class="flex flex-wrap items-center gap-2">
+      <span class="badge {{ status_class }}">{{ status_label }}</span>
+      <span class="badge badge-outline">{{ category_label }}</span>
+      {% for tag in tags %}
+      <span class="badge badge-ghost">{{ tag }}</span>
+      {% endfor %}
+    </div>
+    <h1 class="card-title text-2xl mt-2">{{ title }}</h1>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1 text-sm">
+      <div class="flex gap-2">
+        <span class="text-base-content/60 w-24 shrink-0">slug</span>
+        <span class="font-mono">{{ slug }}</span>
+      </div>
+      <div class="flex gap-2">
+        <span class="text-base-content/60 w-24 shrink-0">公開日</span>
+        <span class="font-mono">{{ published_on }}</span>
+      </div>
+      <div class="flex gap-2">
+        <span class="text-base-content/60 w-24 shrink-0">著者</span>
+        <span>{{ author }}</span>
+      </div>
+      <div class="flex gap-2">
+        <span class="text-base-content/60 w-24 shrink-0">公開URL</span>
+        {% if url_path.is_empty() %}
+        <span class="text-base-content/40">-</span>
+        {% else %}
+        <a class="link link-primary font-mono" href="https://officeiko.co.jp{{ url_path }}" target="_blank" rel="noreferrer">{{ url_path }}</a>
+        {% endif %}
+      </div>
+      <div class="flex gap-2 md:col-span-2">
+        <span class="text-base-content/60 w-24 shrink-0">ファイル</span>
+        <span class="font-mono text-xs break-all">{{ file_path }}</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+  <div class="card bg-base-100 shadow">
+    <div class="card-body">
+      <h2 class="card-title text-base">coverImage</h2>
+      {% if !cover_url.is_empty() %}
+      <div class="text-xs font-mono break-all">{{ cover_url }}</div>
+      <div class="text-xs text-base-content/60">{{ cover_width }} × {{ cover_height }}</div>
+      {% if !cover_alt.is_empty() %}
+      <div class="text-xs">alt: {{ cover_alt }}</div>
+      {% endif %}
+      {% else %}
+      <div class="text-base-content/40 text-sm">-</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card bg-base-100 shadow">
+    <div class="card-body">
+      <h2 class="card-title text-base">frontmatter (raw)</h2>
+      <pre class="text-xs overflow-x-auto bg-base-200 rounded p-3"><code>{{ raw_front_matter }}</code></pre>
+    </div>
+  </div>
+</div>
+
+<div class="card bg-base-100 shadow mt-4">
+  <div class="card-body">
+    <h2 class="card-title text-base">本文</h2>
+    {% if unparseable %}
+    <div class="text-sm text-base-content/60">
+      本文を表示できません (frontmatter を解析できませんでした)。ファイルはそのまま残しています。
+    </div>
+    {% else %}
+    <pre class="text-sm whitespace-pre-wrap break-words bg-base-200 rounded p-3 max-h-[60vh] overflow-y-auto"><code>{{ body }}</code></pre>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

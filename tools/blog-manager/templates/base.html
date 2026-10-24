@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="ja" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}ブログ管理{% endblock %}</title>
+    <link rel="stylesheet" href="/static/daisyui.css" />
+  </head>
+  <body class="min-h-screen bg-base-200">
+    <div class="navbar bg-base-100 shadow-sm">
+      <div class="flex-1">
+        <a class="btn btn-ghost text-lg font-bold" href="/">ブログ管理</a>
+      </div>
+      <div class="flex-none">
+        <span class="badge badge-ghost text-xs">ローカル専用 (127.0.0.1)</span>
+      </div>
+    </div>
+    <main class="mx-auto w-full max-w-6xl p-4 md:p-6">
+      {% block content %}{% endblock %}
+    </main>
+  </body>
+</html>
