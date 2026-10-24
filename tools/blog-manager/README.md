@@ -23,6 +23,22 @@ cargo run              # http://127.0.0.1:3001
 | `CONTENT_DIR` | `<repo>/content` | 記事ディレクトリ (`posts/`, `drafts/`) の親 |
 | `PORT` | `3001` | 待ち受けポート |
 | `TRASH_DIR` | `tools/blog-manager/.trash` | 削除した記事の退避先 |
+| `MEDIA_DIR` | `tools/blog-manager/state/media` | メディア manifest の保存先 |
+
+### オブジェクトストレージ
+
+| 変数 | 例 | 説明 |
+|---|---|---|
+| `RUSTFS_ENDPOINT` | `https://rustfs.mf.officeiko.co.jp` | 下書きメディアの S3 互換エンドポイント |
+| `RUSTFS_BUCKET` | `blog` | 下書きメディアのバケット (非公開) |
+| `RUSTFS_ACCESS_KEY_ID` / `RUSTFS_SECRET_ACCESS_KEY` | — | 認証情報 |
+| `RUSTFS_PUBLIC_BASE` | `https://rustfs.mf.officeiko.co.jp/blog` | 記事に書き込む下書きURL のベース |
+| `R2_ENDPOINT` | `https://<account>.r2.cloudflarestorage.com` | 公開メディアのエンドポイント |
+| `R2_BUCKET` | `officeiko` | 公開メディアのバケット |
+| `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` | — | 認証情報 |
+| `R2_PUBLIC_BASE` | `https://image.officeiko.work` | 公開URL のベース |
+
+起動時に `RUSTFS_*` / `R2_*` が揃っていないとサーバは起動しない。
 
 **必ず `127.0.0.1` にのみバインドする** (認証を持たないため)。将来必要になったら basic auth を追加する。
 
@@ -63,11 +79,42 @@ cargo run              # http://127.0.0.1:3001
 | POST | `/posts/{slug}` | 記事更新 |
 | GET | `/posts/{slug}/delete` | 削除の確認 |
 | POST | `/posts/{slug}/delete` | 削除（`.trash/` に退避） |
+| GET | `/posts/{slug}/media/new` | メディア追加画面 (アップロードフォーム + 管理下メディア一覧) |
+| POST | `/posts/{slug}/media/new` | 編集フォームの「保存してメディアを追加」(formaction)。保存してから追加画面へ遷移 |
+| POST | `/media/{slug}` | multipart アップロード (file + alt + 挿入先 body/cover) |
+| GET | `/media-preview/{*key}` | 非公開 RustFS のプレビュー中継 (127.0.0.1 のみ) |
 | GET | `/static/*` | 静的ファイル |
 
 解析できない記事・slug が不正な記事は `/posts/{slug}` に載らないため、状態 + ファイル名で開く。
 slug 空間とファイル名空間を混ぜないことで、`slug=shadowed` の正常記事と `draft/shadowed.md` の
 壊れた記事が併存しても互いを隠さない。
+
+## メディア管理 (M4)
+
+- **下書きメディアは RustFS** (`RUSTFS_BUCKET`、非公開)、**公開メディアは R2** (`R2_BUCKET`、
+  `image.officeiko.work` で配信)
+- アップロードは multipart で受け付け、mime (JPEG/PNG/GIF/WebP) と 10MB 上限を検証し、
+  `image` crate で寸法を検出する (Elm デコーダが width/height を要求するため)
+- key は `blog/<slug>/<sanitized-name>-<id>.<ext>`。記事には **RustFS の URL** を書き込む
+- **下書き記事**: `<post-image>` (本文) または `coverImage` に RustFS URL を挿入し、manifest
+  (`state/media/<slug>.json`) に `promoted=false` で記録
+- **公開済み記事**: 保存時に **R2 へ昇格** (RustFS GET → R2 PUT、同一 key) してから、
+  記事には R2 公開URL を書く。昇格が失敗したら保存を中止する (§2.6.1 — RustFS URL の混入防止)
+- プレビューは `GET /media-preview/{*key}` のローカル中継のみ。記事ファイルに資格情報や
+  presigned URL は書き込まない
+- R2 の既存メディア (`officeiko` バケットの既存キー) は管理対象外。手入力の URL 欄は維持
+- v1 ではメディアの削除機能を設けない (誤削除防止。孤児オブジェクトは許容)
+
+### M5 publish への接続
+
+`handlers_media::promote_pending_media` が、公開時に下書きメディアを一括昇格する
+ステップ (計画 §2.5 step 0) を提供する:
+
+- 記事が**実際に参照している**未昇格 key のみを昇格 (manifest にあっても未参照の
+  メディアは対象外 — 未使用メディアの失敗で公開を妨げない)
+- 全 key の PUT が終わるまで記事を書き換えない。途中失敗時は完了 key だけ
+  `promoted=true` を記録して中断し、再試行は失敗 key のみになる
+- 記事の URL 置換は管理下 key との全体一致で行う (`<post-image>` と Markdown 画像の両方)
 
 ## 同時編集・誤操作への対策
 
@@ -91,7 +138,8 @@ slug 空間とファイル名空間を混ぜないことで、`slug=shadowed` �
 ## テスト
 
 ```bash
-cargo test
+cargo test                        # ユニット + ハンドラ統合 (モック)
+cargo test --test live_storage -- --ignored   # 実ストレージ疎通 (RUSTFS_*/R2_* が必要)
 ```
 
 - 既存記事 8 件すべてのパース
@@ -116,6 +164,11 @@ cargo test
   - タグの未知キーがハンドラ経由の保存でも残る
   - 予約 slug の作成拒否
   - 同一秒に同名記事を繰り返し削除しても退避内容が失われない
+- メディア: key 生成 (日本語 stem のサニタイズ)、寸法検出、mime/サイズ上限の拒否
+- manifest の roundtrip / 参照 key の抽出 (未使用メディアを含めない) / key 単位の昇格記録
+- promote_urls: 管理下 key のみ URL を置換 (未管理の R2 URL を触らない)
+- media-preview の key 検証 (パストラバーサル拒否) と存在しない key の 404
+- 「保存してメディアを追加」(formaction) が通常の保存と同じ検査を通ること
 
 ## 静的アセット
 

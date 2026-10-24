@@ -1,5 +1,6 @@
 use crate::model::{merge_tags_input, tags_to_input, Category, CoverImage, FrontMatter};
 use crate::repository::{PostFile, RepoError, Repository, Status};
+use crate::storage::StorageBackend;
 use askama::Template;
 use axum::extract::{Path, State};
 use axum::http::{header, StatusCode};
@@ -7,6 +8,7 @@ use axum::response::{Html, IntoResponse, Redirect, Response};
 use axum::Form;
 use serde::Deserialize;
 use std::collections::BTreeMap;
+use std::path::PathBuf;
 use std::sync::Arc;
 
 #[derive(Clone)]
@@ -14,6 +16,12 @@ pub struct AppState {
     pub repo: Arc<Repository>,
     /// 書き込み系の操作を直列化する (同時保存・二重送信の防止)
     pub write_lock: Arc<tokio::sync::Mutex<()>>,
+    /// メディア manifest の保存先 (`state/media/`)
+    pub media_dir: PathBuf,
+    /// 下書きメディアの置き場所 (RustFS)
+    pub rustfs: StorageBackend,
+    /// 公開メディアの置き場所 (R2)
+    pub r2: StorageBackend,
 }
 
 /// askama テンプレートの `render()` を HTTP レスポンスにする。
@@ -138,6 +146,7 @@ pub async fn list(
 fn flash_message(flash: &str) -> &'static str {
     match flash {
         "created" => "下書きを作成しました。",
+        "media-added" => "メディアを追加しました。",
         "updated" => "保存しました。",
         "deleted" => "削除しました (.trash に退避)。",
         _ => "",
@@ -548,9 +557,30 @@ pub async fn update(
     Path(slug): Path<String>,
     Form(form): Form<PostForm>,
 ) -> Response {
+    save_article(&state, &slug, form, |saved_slug| {
+        let target = state
+            .repo
+            .find(saved_slug)
+            .map(|saved| saved.detail_path())
+            .unwrap_or_else(|| "/".to_string());
+        Redirect::to(&format!("{target}?flash=updated")).into_response()
+    })
+    .await
+}
+
+/// 編集フォームの内容を保存する共通処理 (`update` と「保存してメディアを追加」で使う)。
+///
+/// 保存に成功したら `on_success`(保存後の slug) のレスポンスを返す。
+/// 失敗時 (入力エラー・楽観ロック衝突) はフォームの再描画を返す。
+pub async fn save_article(
+    state: &AppState,
+    slug: &str,
+    form: PostForm,
+    on_success: impl Fn(&str) -> Response,
+) -> Response {
     let _guard = state.write_lock.lock().await;
 
-    let Some(post) = state.repo.find(&slug) else {
+    let Some(post) = state.repo.find(slug) else {
         return not_found(&format!("slug: {slug}"));
     };
     let Some(current) = post.front_matter.clone() else {
@@ -562,18 +592,7 @@ pub async fn update(
         Err(errors) => {
             // 入力エラー時は **フォームが持ってきた revision を維持**する。
             // 最新の revision を返すと、再送信で他人の保存内容を上書きできてしまう。
-            return render_template(FormTemplate {
-                heading: "記事を編集",
-                is_edit: true,
-                action: post.detail_path(),
-                slug_readonly: post.status == Status::Published,
-                category_readonly: post.status == Status::Published,
-                file_path: post.path.display().to_string(),
-                revision: form.expected_revision.clone(),
-                errors,
-                values: form.values(),
-                conflict: false,
-            });
+            return render_template(form_template_error(post, form, errors, false));
         }
     };
 
@@ -585,33 +604,44 @@ pub async fn update(
 
     match state.repo.save(&updated, &form.expected_revision) {
         Ok(()) => {
-            let target = state
-                .repo
-                .find(updated.slug().unwrap_or(&slug))
-                .map(|saved| saved.detail_path())
-                .unwrap_or_else(|| "/".to_string());
-            Redirect::to(&format!("{target}?flash=updated")).into_response()
+            let saved_slug = updated.slug().unwrap_or(slug).to_string();
+            on_success(&saved_slug)
         }
         Err(err) => {
             let conflict = matches!(err, RepoError::Conflict | RepoError::RevisionRequired);
-            render_template(FormTemplate {
-                heading: "記事を編集",
-                is_edit: true,
-                action: post.detail_path(),
-                slug_readonly: post.status == Status::Published,
-                category_readonly: post.status == Status::Published,
-                file_path: post.path.display().to_string(),
-                // 衝突時は revision を空にして、再送信でも保存できないようにする
-                revision: if conflict {
-                    String::new()
-                } else {
-                    form.expected_revision.clone()
-                },
-                errors: vec![err.display_message()],
-                values: form.values(),
+            render_template(form_template_error(
+                post,
+                form,
+                vec![err.display_message()],
                 conflict,
-            })
+            ))
         }
+    }
+}
+
+/// 保存失敗時のフォーム再描画 (衝突時は revision を空にして再送信も拒否)。
+fn form_template_error(
+    post: PostFile,
+    form: PostForm,
+    errors: Vec<String>,
+    conflict: bool,
+) -> FormTemplate {
+    FormTemplate {
+        heading: "記事を編集",
+        is_edit: true,
+        action: post.detail_path(),
+        slug_readonly: post.status == Status::Published,
+        category_readonly: post.status == Status::Published,
+        file_path: post.path.display().to_string(),
+        // 衝突時は revision を空にして、再送信でも保存できないようにする
+        revision: if conflict {
+            String::new()
+        } else {
+            form.expected_revision.clone()
+        },
+        errors,
+        values: form.values(),
+        conflict,
     }
 }
 

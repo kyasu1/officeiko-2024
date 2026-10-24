@@ -1,6 +1,7 @@
 use blog_manager::app::router;
 use blog_manager::handlers::AppState;
 use blog_manager::repository::Repository;
+use blog_manager::storage::{BackendConfig, StorageBackend};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -30,6 +31,11 @@ async fn main() {
         _ => PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".trash"),
     };
 
+    let media_dir = match std::env::var("MEDIA_DIR") {
+        Ok(value) if !value.trim().is_empty() => PathBuf::from(value),
+        _ => PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("state/media"),
+    };
+
     let repo = Repository::new(&content_dir, &trash_dir);
     tracing::info!(
         content_dir = %content_dir.display(),
@@ -37,9 +43,27 @@ async fn main() {
         "starting blog-manager"
     );
 
+    let rustfs = match build_backend("RUSTFS", "RustFS") {
+        Ok(backend) => backend,
+        Err(err) => {
+            tracing::error!("{err}");
+            std::process::exit(1);
+        }
+    };
+    let r2 = match build_backend("R2", "R2") {
+        Ok(backend) => backend,
+        Err(err) => {
+            tracing::error!("{err}");
+            std::process::exit(1);
+        }
+    };
+
     let state = AppState {
         repo: Arc::new(repo),
         write_lock: Arc::new(tokio::sync::Mutex::new(())),
+        media_dir,
+        rustfs,
+        r2,
     };
 
     let static_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("static");
@@ -62,6 +86,32 @@ async fn main() {
         tracing::error!("server error: {err}");
         std::process::exit(1);
     }
+}
+
+fn env_value(key: &str) -> Option<String> {
+    std::env::var(key).ok().and_then(|value| {
+        let trimmed = value.trim().to_string();
+        (!trimmed.is_empty()).then_some(trimmed)
+    })
+}
+
+fn build_backend(prefix: &str, name: &'static str) -> Result<StorageBackend, String> {
+    let config = BackendConfig {
+        name,
+        endpoint: env_value(&format!("{prefix}_ENDPOINT"))
+            .ok_or_else(|| format!("{prefix}_ENDPOINT が設定されていません"))?,
+        bucket: env_value(&format!("{prefix}_BUCKET"))
+            .ok_or_else(|| format!("{prefix}_BUCKET が設定されていません"))?,
+        access_key_id: env_value(&format!("{prefix}_ACCESS_KEY_ID"))
+            .ok_or_else(|| format!("{prefix}_ACCESS_KEY_ID が設定されていません"))?,
+        secret_access_key: env_value(&format!("{prefix}_SECRET_ACCESS_KEY"))
+            .ok_or_else(|| format!("{prefix}_SECRET_ACCESS_KEY が設定されていません"))?,
+        region: env_value(&format!("{prefix}_REGION")),
+        public_base: env_value(&format!("{prefix}_PUBLIC_BASE"))
+            .ok_or_else(|| format!("{prefix}_PUBLIC_BASE が設定されていません"))?,
+    };
+
+    StorageBackend::from_config(&config).map_err(|err| format!("{name} の設定が不正です: {err}"))
 }
 
 /// `tools/blog-manager/` からリポジトリ直下の `content/` を既定値にする。

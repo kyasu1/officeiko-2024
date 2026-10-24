@@ -127,6 +127,13 @@
 
   <div class="flex flex-wrap items-center gap-2">
     <button class="btn btn-primary" type="submit">{% if is_edit %}保存{% else %}下書きとして作成{% endif %}</button>
+    {% if is_edit %}
+    <button class="btn btn-secondary" type="submit"
+            formaction="{{ action }}/media/new"
+            formmethod="post">
+      保存してメディアを追加
+    </button>
+    {% endif %}
     <a class="btn btn-ghost" href="/">キャンセル</a>
     {% if !is_edit %}
     <span class="text-xs text-base-content/60">作成直後は下書き (content/drafts/) に保存されます</span>

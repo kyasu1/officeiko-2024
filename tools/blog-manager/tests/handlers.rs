@@ -9,6 +9,7 @@ use axum::http::{Request, StatusCode};
 use blog_manager::app::router;
 use blog_manager::handlers::AppState;
 use blog_manager::repository::Repository;
+use blog_manager::storage::{BackendConfig, StorageBackend};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -24,6 +25,7 @@ struct Fixture {
     _tmp: tempfile::TempDir,
     content: PathBuf,
     trash: PathBuf,
+    media: PathBuf,
 }
 
 impl Fixture {
@@ -31,10 +33,12 @@ impl Fixture {
         let tmp = tempfile::tempdir().unwrap();
         let content = tmp.path().join("content");
         let trash = tmp.path().join(".trash");
+        let media = tmp.path().join("media");
         fs::create_dir_all(content.join("posts")).unwrap();
         Self {
             content,
             trash,
+            media,
             _tmp: tmp,
         }
     }
@@ -49,6 +53,9 @@ impl Fixture {
         AppState {
             repo: Arc::new(Repository::new(&self.content, &self.trash)),
             write_lock: Arc::new(tokio::sync::Mutex::new(())),
+            media_dir: self.media.clone(),
+            rustfs: test_backend("rustfs"),
+            r2: test_backend("r2"),
         }
     }
 
@@ -95,6 +102,19 @@ async fn post_form(app: &axum::Router, uri: &str, fields: &[(&str, &str)]) -> (S
         .await
         .unwrap();
     (status, String::from_utf8_lossy(&body).to_string())
+}
+
+fn test_backend(name: &'static str) -> StorageBackend {
+    let config = BackendConfig {
+        name,
+        endpoint: format!("https://{name}.example.test"),
+        bucket: name.to_string(),
+        access_key_id: "AKID".to_string(),
+        secret_access_key: "SECRET".to_string(),
+        region: None,
+        public_base: format!("https://{name}.cdn.example.test/{name}"),
+    };
+    StorageBackend::from_config(&config).expect("test backend")
 }
 
 fn urlencoding(value: &str) -> String {
@@ -292,4 +312,87 @@ async fn repeated_delete_keeps_every_trashed_file() {
 #[allow(dead_code)]
 fn assert_exists(path: &Path) {
     assert!(path.exists(), "{}", path.display());
+}
+
+// ---------------------------------------------------------------------------
+// M4: メディア
+// ---------------------------------------------------------------------------
+
+/// `GET /media-preview/{*key}` は管理下 key の形式だけを受け付ける。
+#[tokio::test]
+async fn media_preview_rejects_unsafe_keys() {
+    let fixture = Fixture::new();
+    let app = fixture.app();
+
+    for uri in [
+        "/media-preview/etc/passwd",
+        "/media-preview/blog/../secret",
+        "/media-preview/blog/..%2F..%2Fetc",
+        "/media-preview/blog//double",
+    ] {
+        let (status, _) = get(&app, uri).await;
+        assert!(
+            status == StatusCode::BAD_REQUEST || status == StatusCode::NOT_FOUND,
+            "{uri}: 拒否されること (actual {status})"
+        );
+    }
+
+    // 形式が正しくても実体が取れなければ 404 (テストバックエンドには無い)
+    let (status, body) = get(&app, "/media-preview/blog/s/valid-key.jpg").await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+    assert!(body.contains("メディアを取得できません"), "{body}");
+}
+
+/// アップロード画面・アップロード先は slug が存在しないと 404。
+#[tokio::test]
+async fn media_routes_404_for_unknown_slug() {
+    let fixture = Fixture::new();
+    let app = fixture.app();
+
+    let (status, _) = get(&app, "/posts/unknown/media/new").await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+
+    let (status, _) = get(&app, "/posts/unknown/edit").await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+}
+
+/// 編集フォームの formaction (`POST /posts/{slug}/media/new`) は保存して
+/// アップロード画面への 303 を返すこと。
+#[tokio::test]
+async fn save_and_open_upload_redirects_after_save() {
+    let fixture = Fixture::new();
+    fixture.write_post("note", "\n本文\n");
+    let app = fixture.app();
+
+    let (_, html) = get(&app, "/posts/note/edit").await;
+    let revision = extract_hidden(&html, "expected_revision");
+    let fields = update_fields("note", &revision, "\n保存してからメディア追加\n");
+    let (status, _) = post_form(&app, "/posts/note/media/new", &as_refs(&fields)).await;
+
+    assert_eq!(status, StatusCode::SEE_OTHER);
+    let saved = fs::read_to_string(fixture.content.join("posts/note.md")).unwrap();
+    assert!(saved.contains("保存してからメディア追加"), "{saved}");
+    assert!(
+        saved.contains("id: 42"),
+        "タグの未知キーも保存される: {saved}"
+    );
+}
+
+/// アップロード画面は slug と manifest を表示する。
+#[tokio::test]
+async fn upload_form_lists_managed_media() {
+    let fixture = Fixture::new();
+    fixture.write_post("note", "\n本文\n");
+    let app = fixture.app();
+
+    let (status, html) = get(&app, "/posts/note/media/new").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(html.contains("メディアをアップロード"), "{html}");
+    assert!(html.contains("enctype=\"multipart/form-data\""), "{html}");
+    assert!(html.contains("まだありません"), "manifest が空のときの表示");
+    // note は posts/ にある = 公開済みなので「保存時に R2 へ昇格」が表示される
+    assert!(
+        html.contains("保存時に R2 へ昇格"),
+        "公開済み記事の文言: {html}"
+    );
 }
