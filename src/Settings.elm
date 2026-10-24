@@ -9,7 +9,7 @@ import Pages.Url as Url
 
 canonicalUrl : String
 canonicalUrl =
-    "https://www.officeiko.co.jp"
+    "https://officeiko.co.jp"
 
 
 locale : Maybe ( Language.Language, Region.Region )

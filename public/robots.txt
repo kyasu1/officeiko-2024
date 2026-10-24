@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://www.officeiko.co.jp/sitemap.xml
+Sitemap: https://officeiko.co.jp/sitemap.xml

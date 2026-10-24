@@ -12,7 +12,7 @@ import SiteConfig exposing (SiteConfig)
 
 config : SiteConfig
 config =
-    { canonicalUrl = "https://www.officeiko.co.jp"
+    { canonicalUrl = "https://officeiko.co.jp"
     , head = head
     }
 
