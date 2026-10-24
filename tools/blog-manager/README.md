@@ -6,9 +6,13 @@
 
 ## 起動
 
+**前提: 隣接リポジトリの共有ライブラリが必要** (`Cargo.toml` の path 依存
+`gmb-event-poster = { path = "../../../gmb-event-poster" }`)。このリポジトリの親ディレクトリに
+`gmb-event-poster/` がある配置で、ブランチは `codex/blog-manager-standard`。無いとビルドできない。
+
 ```bash
 cd tools/blog-manager
-cp .env.example .env   # 必要に応じて編集 (M2 では不要)
+cp .env.example .env   # RUSTFS_* と R2_* は起動に必須。GMB_* は投稿する時だけ
 cargo run              # http://127.0.0.1:3001
 ```
 
@@ -66,7 +70,7 @@ cargo run              # http://127.0.0.1:3001
 - `tags` / `tags[].attributes` の内部にある未知キーも保持する
 - タグはフォームで `表示名,slug` の 1 行 1 件として編集する（Elm が `{attributes:{name,slug}}` を要求するため）
 
-## 画面 (M2 時点)
+## 画面
 
 | メソッド | パス | 内容 |
 |---|---|---|
@@ -138,8 +142,18 @@ slug 空間とファイル名空間を混ぜないことで、`slug=shadowed` �
 ## テスト
 
 ```bash
-cargo test                        # ユニット + ハンドラ統合 (モック)
-cargo test --test live_storage -- --ignored   # 実ストレージ疎通 (RUSTFS_*/R2_* が必要)
+# アプリ (リポジトリ直下から)。rustc の incremental ICE を避けるため CARGO_INCREMENTAL=0 と
+# 専用 target-dir を使う (M5 で判明した環境上の回避策)
+CARGO_INCREMENTAL=0 cargo test --locked --offline \
+  --manifest-path tools/blog-manager/Cargo.toml \
+  --target-dir /private/tmp/officeiko-m5-target
+# → 70 passed / 0 failed / 2 ignored
+
+# 実ストレージへの疎通 (ignored の 2 件。RUSTFS_*/R2_* の実設定が必要)
+cargo test --test live_storage -- --ignored
+
+# 共有ライブラリ (隣接リポジトリ)
+cd ../../../gmb-event-poster && cargo test --locked --offline   # → 5 passed
 ```
 
 - 既存記事 8 件すべてのパース
@@ -169,6 +183,23 @@ cargo test --test live_storage -- --ignored   # 実ストレージ疎通 (RUSTFS
 - promote_urls: 管理下 key のみ URL を置換 (未管理の R2 URL を触らない)
 - media-preview の key 検証 (パストラバーサル拒否) と存在しない key の 404
 - 「保存してメディアを追加」(formaction) が通常の保存と同じ検査を通ること
+- 公開ステートマシン (`tests/publish.rs`): 昇格→移動→git→GMB の遷移、中断からの再開、
+  `in_flight` 永続化と unknown 化 (自動再送しない)、git preflight の stage 検査
+- 実ストレージ (`tests/live_storage.rs`): `#[ignore]` の 2 件。実 RustFS/R2 の設定がある環境でのみ実行
+
+## 残件 (M6 で実施しなかったもの)
+
+- **本文のフルプレビュー未実装**。記事編集は実装済みだが、記事全体を本番表示と同じように
+  レンダリングするプレビュー画面はない。現状のプレビューは `GET /media-preview/{*key}` の
+  画像中継のみ (計画 §2.4.1 の非公開中継)。
+- **`coverImage` 入力の UX 改善** (画像選択・プレビュー連携) も未着手。
+  どちらも既存 M6 の範囲外のため、今回は実装していない。
+- **外部を伴う受入が未実施**: 実 RustFS/R2 への昇格 (ignored テスト)、管理UI→公開→git→Netlify→GMB
+  の全経路 E2E、実 R2 へのメディア昇格。実 GMB では 2026-10-24 に STANDARD 投稿 1 件で
+  API 疎通と表示のみ確認済み (scratch runner からの送信で、下書き)。実行には対象記事と
+  実行許可のユーザー確認が必要。
+- 共有ライブラリに `GmbError` の未使用フィールド warning が 3 件残る (`code` / `error_type` /
+  `sub_error_code`)。公開エラー型のフィールドなので意図的に保持している。
 
 ## 静的アセット
 

@@ -419,9 +419,11 @@ officeiko-2024/tools/blog-manager/
     "actionType": "LEARN_MORE",
     "url": "<category に応じた公開URL>"
   },
-  "media": [{ "mediaFormat": "IMAGE", "sourceUrl": "<coverImage.url>" }]
+  "media": [{ "mediaFormat": "PHOTO", "sourceUrl": "<coverImage.url>" }]
 }
 ```
+- **訂正 (M6 確認)**: `mediaFormat` は `IMAGE` ではなく **`PHOTO`**。実装 (`gmb-event-poster/src/builder.rs`
+  の EVENT/STANDARD 両ビルダー) と 2026-10-24 の実 API 疎通テストで `PHOTO` を確認済み。
 - 画像: frontmatter `coverImage.url` (新規記事は R2 公開URL) を使用 — 全て公開ホスト済み。
 - 認証: 既存 Domain-Wide Delegation (service account JWT, scope `business.manage`) をそのまま利用。
 - `.env`: `tools/blog-manager/.env` に `GMB_SERVICE_ACCOUNT_EMAIL / GMB_PRIVATE_KEY / GMB_USER_EMAIL /
