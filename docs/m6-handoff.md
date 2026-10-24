@@ -58,9 +58,10 @@
 
 ## 保持した warning (3件)
 
-`gmb-event-poster` の `GmbError` に `code` / `error_type` / `sub_error_code` の未使用フィールド
-warning が残る。公開エラー型のフィールドで、削除すると呼び出し側の型を壊すため意図的に保持した
-(M5からの継続)。
+`gmb-event-poster` の内部エラー応答型 (`pub(crate)` の `ErrorDetails` /
+`ValidationErrorWrapper` / `ValidationErrorDetail`) に `code` / `error_type` /
+`sub_error_code` の未使用フィールドwarningが残る。公開APIではない。
+M6では既存の応答型を変更せず保持した (M5からの継続)。
 
 ## 実施しなかった残件
 
@@ -81,3 +82,14 @@ warning が残る。公開エラー型のフィールドで、削除すると呼
 統合順は M4 (`e1b26b2`) → M5 → M6 と、共有ライブラリ `codex/blog-manager-standard` を
 セットで選ぶ必要がある (アプリの path 依存がライブラリの STANDARD 対応を要求するため、
 アプリのみを main に積んでもビルドできない)。
+
+## Codexによる確認 (2026-10-24)
+
+アプリ `f4bf28d` / ライブラリ `b892605` の差分を確認。Rustテストはアプリ70件成功・
+実storage2件ignored、ライブラリ5件成功を再確認。両crateのfmt/clippyとTLS依存監査も通過。
+サイトの `npm run build` (elm-reviewを含む) も再実行成功。既存ツール由来の非推奨warningは残る。
+READMEのテストコマンドをリポジトリ直下から実行できる形に修正し、warningの型の説明を訂正した。
+
+カバー画像について、ユーザーが「新規作成・編集時のアップロード、寸法自動取得、画像確認・
+差し替え、カバーなし下書き保存可・公開時必須」の方針に合意。
+設計は `docs/superpowers/specs/2026-10-24-cover-image-design.md`。実装は未着手でM6に含めない。

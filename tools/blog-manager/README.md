@@ -150,10 +150,10 @@ CARGO_INCREMENTAL=0 cargo test --locked --offline \
 # → 70 passed / 0 failed / 2 ignored
 
 # 実ストレージへの疎通 (ignored の 2 件。RUSTFS_*/R2_* の実設定が必要)
-cargo test --test live_storage -- --ignored
+cargo test --manifest-path tools/blog-manager/Cargo.toml --test live_storage -- --ignored
 
-# 共有ライブラリ (隣接リポジトリ)
-cd ../../../gmb-event-poster && cargo test --locked --offline   # → 5 passed
+# 共有ライブラリ (リポジトリ直下から、隣接リポジトリの manifest を指定)
+cargo test --locked --offline --manifest-path ../gmb-event-poster/Cargo.toml   # → 5 passed
 ```
 
 - 既存記事 8 件すべてのパース
@@ -191,15 +191,19 @@ cd ../../../gmb-event-poster && cargo test --locked --offline   # → 5 passed
 
 - **本文のフルプレビュー未実装**。記事編集は実装済みだが、記事全体を本番表示と同じように
   レンダリングするプレビュー画面はない。現状のプレビューは `GET /media-preview/{*key}` の
-  画像中継のみ (計画 §2.4.1 の非公開中継)。
-- **`coverImage` 入力の UX 改善** (画像選択・プレビュー連携) も未着手。
-  どちらも既存 M6 の範囲外のため、今回は実装していない。
+  画像中継のみ (計画 §2.6 の非公開中継)。
+- **記事ごとのカバー画像アップロード改善** は方針合意済み・未実装。
+  新規作成・編集から画像選択、寸法自動取得、画像確認・差し替えを行えるようにする。
+  カバー未設定でも下書き保存でき、公開時には必須とする。
+  [合意した設計](../../docs/superpowers/specs/2026-10-24-cover-image-design.md) を参照。
+  現状は保存済み記事の「保存してメディアを追加」で挿入先「カバー画像」を選ぶ機能があり、
+  新規作成時にはまだ URL・幅・高さが必須。本文のフルプレビューと併せ、M6の範囲外。
 - **外部を伴う受入が未実施**: 実 RustFS/R2 への昇格 (ignored テスト)、管理UI→公開→git→Netlify→GMB
   の全経路 E2E、実 R2 へのメディア昇格。実 GMB では 2026-10-24 に STANDARD 投稿 1 件で
   API 疎通と表示のみ確認済み (scratch runner からの送信で、下書き)。実行には対象記事と
   実行許可のユーザー確認が必要。
-- 共有ライブラリに `GmbError` の未使用フィールド warning が 3 件残る (`code` / `error_type` /
-  `sub_error_code`)。公開エラー型のフィールドなので意図的に保持している。
+- 共有ライブラリの内部エラー応答型 (`pub(crate)`) に未使用フィールド warning が 3 件残る
+  (`code` / `error_type` / `sub_error_code`)。M6では既存の応答型を変更せず保持した。
 
 ## 静的アセット
 

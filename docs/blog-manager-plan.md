@@ -1,9 +1,20 @@
-# 実装計画: Blogカテゴリ追加 + ローカル記事管理CRUDアプリ + GMB連携 (v8)
+# 実装計画: Blogカテゴリ追加 + ローカル記事管理CRUDアプリ + GMB連携 (v9)
 
 - 対象リポジトリ: `/Users/yako/Projects/officeiko-2024` (elm-pages 3.x / Netlify 静的サイト)
 - 参考ライブラリ: `/Users/yako/Projects/gmb-event-poster` (Rust / Google My Business 投稿ライブラリ)
-- バージョン: v8 — codex レビュー (v7 軽微な記載修正: 記事件数8件 / promoted 定義 /
-  RustFS URL規約の誤読防止) を反映
+- バージョン: v9 — M6確認後、カバー画像アップロード改善の合意事項を追加。
+  v8はcodexレビュー (記事件数8件 / promoted定義 / RustFS URL規約) を反映。
+
+### 実装状況と計画の読み方 (2026-10-24)
+
+M1〜M6の実装・ローカル検証済み。実GMBはSTANDARD投稿・表示確認後、ユーザーが削除済み。
+実RustFS/R2昇格と公開からNetlifyまでの全経路E2Eは未受入。詳細は `docs/m6-handoff.md`。
+以下の設計本文には当初案も残るため、現実装では次を優先する:
+
+- 公開状態は `state/publish/<slug>.json`。同一プロセスの全書込みをグローバルwrite lockで直列化。
+- メディア画面への遷移は編集内容を記事へ保存してから行う。独立したedit-sessionの実装はない。
+- canonical / CTA は `https://officeiko.co.jp`。
+- カバー改善は下記 §2.4.2 の合意方針で、実装はこれから。本文全体のプレビューも未実装。
 
 ## 0. 確定事項
 
@@ -63,7 +74,7 @@
 
 ### 1.4 SEO / head
 - 各新ルートに `Seo.summary` + `Seo.article` (既存 `Route/Post/Slug_.elm` と同型)。
-- canonical: `https://www.officeiko.co.jp` (`src/Settings.elm`)。
+- canonical: `https://officeiko.co.jp` (`src/Settings.elm`)。
 - Blog詳細のOG image は frontmatter `coverImage` を使用。
 
 ### 1.5 検証
@@ -189,6 +200,19 @@ officeiko-2024/tools/blog-manager/
 `edit_session_id` (uuid) を持たせて分離し、id 不一致時は「他のセッションが編集中」として
 明示的に拒否する** (codex 第2回残り 反映)。
 
+### 2.4.2 カバー画像アップロード改善 (合意済み・未実装)
+
+2026-10-24のユーザー合意。新規作成時から記事ごとに画像をアップロードし、寸法を自動取得、
+画像を確認・差し替えできるようにする。URL手入力は既存画像利用の補助として残す。
+**カバーなしで下書き保存可、公開時はカバー必須**とする。
+下書きはRustFS、公開時にR2へ昇格する既存方式を利用する。
+公開済み記事のカバー必須条件とサイトのElmデコーダは維持する。
+
+現実装は保存済み記事へのカバーアップロードに対応するが、新規保存前はURL・寸法が必須。
+改善では下書き保存・読み込みと公開の検証を分離し、この循環を解消する必要がある。
+詳細と受入条件: [カバー画像設計](superpowers/specs/2026-10-24-cover-image-design.md)。
+M6から独立した次の実装として扱い、この記事全体のプレビュー実装は含めない。
+
 ### 2.5 公開フロー (`POST /posts/:slug/publish`) — ステートマシン化
 **state モデル (codex 第2回 P1 反映)** — `tools/blog-manager/state/` 配下:
 
@@ -247,8 +271,8 @@ officeiko-2024/tools/blog-manager/
 - **git OFF / GMB ON の組合せ**: サイト未反映のまま外部投稿になる点を UI で警告。
 - **GMB単独操作** (`POST /posts/:slug/gmb`): 本番反映を確認した後に投稿できるよう、公開済み記事一覧にも
   常設ボタンを用意 (推奨運用: 公開 → デプロイ確認 → GMB投稿)。
-- **CTA URL は category 依存**: news → `https://www.officeiko.co.jp/post/<slug>`、
-  blog → `https://www.officeiko.co.jp/blog/<slug>` (News も管理対象のため — codex P1)。
+- **CTA URL は category 依存**: news → `https://officeiko.co.jp/post/<slug>`、
+  blog → `https://officeiko.co.jp/blog/<slug>` (News も管理対象のため — codex P1)。
 - **公開済み記事の編集/削除**: 保存・削除も次の build/push で本番反映されるため、
   編集/削除フォームにも git commit/push チェックボックス (デフォルトOFF) を設け、
   その場合の commit 対象は変更/削除された記事ファイルのみに限定。
