@@ -11,6 +11,7 @@ import Layout
 import Market exposing (Market)
 import PagesMsg exposing (PagesMsg)
 import Post exposing (Post)
+import PostRoute
 import Route
 import RouteBuilder exposing (App, StatelessRoute)
 import Settings
@@ -110,7 +111,7 @@ view app shared =
                                     [ text (Utils.kanjiDate post.publishedOn)
                                     ]
                                 , div []
-                                    [ Route.link [ class "hover:text-indigo-800" ] [ text post.title ] (Route.Post__Slug_ { slug = post.slug })
+                                    [ Route.link [ class "hover:text-indigo-800" ] [ text post.title ] (PostRoute.route post.category post.slug)
                                     ]
                                 ]
                         )
@@ -123,7 +124,7 @@ view app shared =
                 [ Route.link [ class "w-full p-2 flex items-center justify-center bg-red-600" ]
                     [ div [ class "font-bold text-white text-lg md:text-xl lg:text-2xl" ] [ text "詐欺販売サイトに関するご注意" ]
                     ]
-                    (Route.Post__Slug_ { slug = "fake-site-alert" })
+                    (PostRoute.route Post.Blog "fake-site-alert")
                 , Route.link []
                     [ div [ class "w-full flex items-center justify-center bg-black" ]
                         [ img [ A.src "/images/logo.wu.big.svg", class "max-w-[240px]" ] [] ]
@@ -188,7 +189,7 @@ view app shared =
                             [ Route.link []
                                 [ Image.render post.coverImage
                                 ]
-                                (Route.Post__Slug_ { slug = post.slug })
+                                (PostRoute.route post.category post.slug)
                             ]
                         , div [ class "text-sm" ] [ text (Utils.kanjiDate post.publishedOn) ]
                         , div [ class "text-sm text-ellipsis whitespace-nowrap overflow-hidden max-w-400px lg:max-w-[200px]" ] [ text post.title ]

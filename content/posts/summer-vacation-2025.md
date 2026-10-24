@@ -1,6 +1,6 @@
 ---
 title: 夏季休業のおしらせ 2025年7-8月
-slug: "winter-vacation-2025"
+slug: "summer-vacation-2025"
 author: "小松原 康行"
 publishedOn: "2025-07-01"
 category: "news"

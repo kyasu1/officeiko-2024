@@ -23,12 +23,21 @@ view post =
         , Layout.image [] (Image.render post.coverImage)
         , Layout.section []
             [ div [ class "flex  justify-between items-center text-sm space-x-2 " ]
-                [ tagView post.tags
+                [ div [ class "flex space-x-2 items-center" ]
+                    [ categoryBadge post.category
+                    , tagView post.tags
+                    ]
                 , div [] [ text "更新日 ", text (Utils.kanjiDate post.publishedOn) ]
                 ]
             ]
         , Layout.section [] (Markdown.toHtml renderer post.body)
         ]
+
+
+categoryBadge : Post.Category -> Html msg
+categoryBadge category =
+    div [ class "rounded bg-iko-500 text-white px-2 py-1 font-semibold" ]
+        [ text (Post.categoryToLabel category) ]
 
 
 tagView : List Post.Tag -> Html msg

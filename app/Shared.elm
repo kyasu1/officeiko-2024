@@ -239,6 +239,7 @@ viewFooter path =
                 [ div []
                     [ ul [ class "flex flex-col md:flex-row text-sm text-white font-medium" ]
                         [ li [ class "px-4 py-2" ] [ Route.link [] [ text "ニュース" ] Route.Posts ]
+                        , li [ class "px-4 py-2" ] [ Route.link [] [ text "ブログ" ] Route.Blog ]
                         ]
                     , ul [ class "flex flex-col md:flex-row text-sm text-white font-medium" ]
                         [ li [ class "px-4 py-2" ] [ Route.link [] [ text "質入・融資" ] Route.Pawn ]
