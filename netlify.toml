@@ -11,3 +11,15 @@
 
 [functions]
   node_bundler = "esbuild"
+
+# カテゴリ別URL分離 (/post/:slug = News, /blog/:slug = Blog) に伴う旧URLの保護
+[[redirects]]
+  from = "/post/fake-site-alert"
+  to = "/blog/fake-site-alert"
+  status = 301
+
+# 既存記事の slug 誤記修正 (winter-vacation-2025 -> summer-vacation-2025)
+[[redirects]]
+  from = "/post/winter-vacation-2025"
+  to = "/post/summer-vacation-2025"
+  status = 301

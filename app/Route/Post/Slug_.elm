@@ -13,7 +13,7 @@ import Head.Seo as Seo
 import Image
 import Layout.Post
 import PagesMsg exposing (PagesMsg)
-import Post
+import Post exposing (Category(..))
 import RouteBuilder exposing (App, StatelessRoute)
 import Settings
 import Shared
@@ -44,7 +44,7 @@ route =
 
 pages : BackendTask FatalError (List RouteParams)
 pages =
-    Post.getAllPosts Nothing
+    Post.getAllPostsUnlimited (Just News)
         |> BackendTask.map
             (\posts ->
                 List.map (\post -> { slug = post.slug }) posts
@@ -61,7 +61,7 @@ type alias ActionData =
 
 data : RouteParams -> BackendTask FatalError Data
 data routeParams =
-    BackendTask.map Data (Post.postFromSlug routeParams.slug)
+    BackendTask.map Data (Post.postFromCategorySlug News routeParams.slug)
 
 
 image : Post.Post -> Seo.Image

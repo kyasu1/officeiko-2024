@@ -1,4 +1,15 @@
-module Post exposing (Post, Tag, blogPosts, getAllPosts, newsPosts, postFromSlug)
+module Post exposing
+    ( Category(..)
+    , Post
+    , Tag
+    , blogPosts
+    , categoryToLabel
+    , categoryToSlug
+    , getAllPosts
+    , getAllPostsUnlimited
+    , newsPosts
+    , postFromCategorySlug
+    )
 
 import BackendTask exposing (BackendTask)
 import BackendTask.File
@@ -12,17 +23,19 @@ import Json.Decode.Extra as JD exposing (collection)
 import Utils
 
 
-postFromSlug : String -> BackendTask FatalError Post
-postFromSlug slug =
-    allPostsDict
+postFromCategorySlug : Category -> String -> BackendTask FatalError Post
+postFromCategorySlug category slug =
+    allPostsDict (Just category)
         |> BackendTask.andThen
-            (\postsDict ->
-                Dict.get slug postsDict
+            (\dict ->
+                Dict.get slug dict
                     |> Maybe.map BackendTask.succeed
                     |> Maybe.withDefault
                         (BackendTask.fail <|
                             FatalError.fromString <|
-                                "Unable to find post with slug "
+                                "Unable to find "
+                                    ++ categoryToSlug category
+                                    ++ " post with slug "
                                     ++ slug
                         )
             )
@@ -31,6 +44,13 @@ postFromSlug slug =
 getAllPosts : Maybe Category -> BackendTask FatalError (List Post)
 getAllPosts maybeCategory =
     getPosts { skip = 0, limit = 100, category = maybeCategory }
+
+
+{-| 全件を列挙する (preRender の pages 用)。一覧表示の件数制限とは分離する。
+-}
+getAllPostsUnlimited : Maybe Category -> BackendTask FatalError (List Post)
+getAllPostsUnlimited maybeCategory =
+    postsByCategory maybeCategory
 
 
 
@@ -44,8 +64,8 @@ getAllPosts maybeCategory =
 --            )
 
 
-postsTask : Query -> BackendTask error (List { filePath : String, slug : String })
-postsTask query =
+postsTask : BackendTask error (List { filePath : String, slug : String })
+postsTask =
     Glob.succeed (\filePath slug -> { filePath = filePath, slug = slug })
         |> Glob.captureFilePath
         |> Glob.match (Glob.literal "content/posts/")
@@ -56,7 +76,20 @@ postsTask query =
 
 getPosts : Query -> BackendTask FatalError (List Post)
 getPosts query =
-    postsTask query
+    postsByCategory query.category
+        |> BackendTask.map
+            (\posts ->
+                posts
+                    |> List.drop (query.skip * query.limit)
+                    |> List.take query.limit
+            )
+
+
+{-| カテゴリで絞り込んだ全記事 (新しい順)。件数制限はここでは行わない。
+-}
+postsByCategory : Maybe Category -> BackendTask FatalError (List Post)
+postsByCategory maybeCategory =
+    postsTask
         |> BackendTask.map
             (\files ->
                 List.map (\post -> BackendTask.File.bodyWithFrontmatter postDecoder post.filePath) files
@@ -69,15 +102,13 @@ getPosts query =
                     |> List.reverse
                     |> List.filter
                         (\post ->
-                            case query.category of
+                            case maybeCategory of
                                 Nothing ->
                                     True
 
                                 Just category ->
                                     post.category == category
                         )
-                    |> List.drop (query.skip * query.limit)
-                    |> List.take query.limit
             )
         |> BackendTask.allowFatal
 
@@ -149,6 +180,16 @@ categoryToSlug v =
             "blog"
 
 
+categoryToLabel : Category -> String
+categoryToLabel v =
+    case v of
+        News ->
+            "お知らせ"
+
+        Blog ->
+            "ブログ"
+
+
 postDecoder : String -> JD.Decoder Post
 postDecoder body =
     JD.succeed Post
@@ -169,9 +210,9 @@ tagDecoder =
         (JD.at [ "attributes", "slug" ] JD.string)
 
 
-allPostsDict : BackendTask FatalError (Dict String Post)
-allPostsDict =
-    getAllPosts Nothing
+allPostsDict : Maybe Category -> BackendTask FatalError (Dict String Post)
+allPostsDict maybeCategory =
+    postsByCategory maybeCategory
         |> BackendTask.map
             (\posts ->
                 List.map (\item -> ( item.slug, item )) posts
