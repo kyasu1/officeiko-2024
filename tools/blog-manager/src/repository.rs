@@ -21,6 +21,8 @@ pub enum RepoError {
     Validation(String),
     #[error("他の編集が先に保存されました。再読み込みしてやり直してください")]
     Conflict,
+    #[error("更新には編集開始時の revision が必要です。編集画面を開き直してください")]
+    RevisionRequired,
 }
 
 impl RepoError {
@@ -298,7 +300,7 @@ impl Repository {
     ///
     /// `expected_revision` が渡された場合、ディスク上の内容が読み込み時から
     /// 変わっていれば **他の編集と衝突した** とみなして拒否する (楽観ロック)。
-    pub fn save(&self, post: &PostFile, expected_revision: Option<&str>) -> Result<(), RepoError> {
+    pub fn save(&self, post: &PostFile, expected_revision: &str) -> Result<(), RepoError> {
         let front_matter = post.front_matter.as_ref().ok_or_else(|| {
             RepoError::Validation("frontmatter のない記事は保存できません".into())
         })?;
@@ -371,37 +373,26 @@ impl Repository {
     }
 
     /// 記事を削除する。ファイルは `.trash/` へ退避し、復元できるようにする。
-    pub fn delete(
-        &self,
-        post: &PostFile,
-        expected_revision: Option<&str>,
-    ) -> Result<PathBuf, RepoError> {
+    pub fn delete(&self, post: &PostFile, expected_revision: &str) -> Result<PathBuf, RepoError> {
         self.ensure_revision_matches(&post.path, expected_revision)?;
 
-        fs::create_dir_all(&self.trash_dir)?;
-        let stamp = chrono::Local::now().format("%Y%m%d%H%M%S");
-        let trash_path = self.trash_dir.join(format!(
-            "{stamp}-{}-{}",
-            post.status.as_str(),
-            post.file_name
-        ));
-
-        fs::rename(&post.path, &trash_path)?;
-        Ok(trash_path)
+        move_to_trash(&self.trash_dir, &post.path, post.status, &post.file_name)
     }
 
+    /// 楽観ロック。空の revision は「検査をスキップ」ではなく **エラー** とする
+    /// (hidden フィールドを消すだけで上書きできてしまうため)。
     fn ensure_revision_matches(
         &self,
         path: &Path,
-        expected_revision: Option<&str>,
+        expected_revision: &str,
     ) -> Result<(), RepoError> {
-        let Some(expected) = expected_revision.filter(|value| !value.is_empty()) else {
-            return Ok(());
-        };
+        if expected_revision.is_empty() {
+            return Err(RepoError::RevisionRequired);
+        }
         let current = fs::read_to_string(path)
             .map(|raw| hash_revision(&raw))
             .unwrap_or_default();
-        if current != expected {
+        if current != expected_revision {
             return Err(RepoError::Conflict);
         }
         Ok(())
@@ -481,6 +472,56 @@ pub fn atomic_write(path: &Path, contents: &str) -> io::Result<()> {
             Err(err)
         }
     }
+}
+
+/// 記事ファイルを `.trash/` へ退避する。
+///
+/// 宛先は **create_new で新規作成してから中身を書き込む** ので、既存の退避ファイルを
+/// 上書きしない (秒精度のタイムスタンプだけでは同一秒の削除で衝突する)。
+fn move_to_trash(
+    trash_dir: &Path,
+    source: &Path,
+    status: Status,
+    file_name: &str,
+) -> Result<PathBuf, RepoError> {
+    use std::io::Write;
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    static COUNTER: AtomicU64 = AtomicU64::new(0);
+
+    fs::create_dir_all(trash_dir)?;
+    let bytes = fs::read(source)?;
+    let stamp = chrono::Local::now().format("%Y%m%d%H%M%S%.9f");
+
+    for _ in 0..1000 {
+        let sequence = COUNTER.fetch_add(1, Ordering::Relaxed);
+        let candidate = trash_dir.join(format!(
+            "{stamp}-{}-{sequence}-{}-{file_name}",
+            std::process::id(),
+            status.as_str()
+        ));
+
+        match fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&candidate)
+        {
+            Ok(mut file) => {
+                file.write_all(&bytes)?;
+                file.sync_all()?;
+                drop(file);
+                // 退避先の書き込みが終わってから元を消す (失敗しても元は残る)
+                fs::remove_file(source)?;
+                return Ok(candidate);
+            }
+            Err(err) if err.kind() == io::ErrorKind::AlreadyExists => continue,
+            Err(err) => return Err(RepoError::Io(err)),
+        }
+    }
+
+    Err(RepoError::Validation(
+        "退避ファイル名を確保できませんでした".into(),
+    ))
 }
 
 /// 内容のハッシュ (楽観ロック用)
@@ -846,7 +887,7 @@ mod tests {
         let repo = Repository::new(content, trash_for(content));
         let mut post = repo.find("note").unwrap();
         post.body = "\n\n更新後の本文\n".to_string();
-        repo.save(&post, None).unwrap();
+        repo.save(&post, &post.revision.clone()).unwrap();
 
         let saved = fs::read_to_string(&path).unwrap();
         assert!(saved.ends_with("\n\n更新後の本文\n"));
@@ -892,7 +933,10 @@ mod tests {
 
         let created = repo.find("new-post").expect("作成した記事を引ける");
         assert_eq!(created.status, Status::Draft);
-        assert_eq!(created.body, "\n本文\n", "本文の前に空行が入る (既存記事の体裁)");
+        assert_eq!(
+            created.body, "\n本文\n",
+            "本文の前に空行が入る (既存記事の体裁)"
+        );
 
         // 2 回目は上書きせず失敗する
         let err = repo
@@ -929,7 +973,7 @@ mod tests {
         )
         .unwrap();
 
-        let err = repo.save(&post, Some(&stale)).unwrap_err();
+        let err = repo.save(&post, &stale).unwrap_err();
         assert!(matches!(
             err,
             RepoError::Conflict | RepoError::Validation(_)
@@ -938,7 +982,7 @@ mod tests {
 
         // 最新の revision なら保存できる
         let fresh = repo.find("note").unwrap();
-        repo.save(&fresh, Some(&fresh.revision)).unwrap();
+        repo.save(&fresh, &fresh.revision).unwrap();
     }
 
     #[test]
@@ -956,12 +1000,12 @@ mod tests {
 
         let mut post = repo.find("published").unwrap();
         post.front_matter.as_mut().unwrap().slug = "renamed".to_string();
-        let err = repo.save(&post, None).unwrap_err();
+        let err = repo.save(&post, &post.revision.clone()).unwrap_err();
         assert!(err.to_string().contains("slug は変更できません"));
 
         let mut post = repo.find("published").unwrap();
         post.front_matter.as_mut().unwrap().category = crate::model::Category::Blog;
-        let err = repo.save(&post, None).unwrap_err();
+        let err = repo.save(&post, &post.revision.clone()).unwrap_err();
         assert!(err.to_string().contains("カテゴリは変更できません"));
     }
 
@@ -979,7 +1023,7 @@ mod tests {
 
         let repo = Repository::new(content, trash_for(content));
         let post = repo.find("gone").unwrap();
-        let trashed = repo.delete(&post, Some(&post.revision)).unwrap();
+        let trashed = repo.delete(&post, &post.revision.clone()).unwrap();
 
         assert!(!path.exists(), "元ファイルは消える");
         assert!(trashed.exists(), "trash に退避される");
@@ -1008,7 +1052,7 @@ mod tests {
         fs::write(&path, "changed\n").unwrap();
 
         assert!(matches!(
-            repo.delete(&post, Some(&post.revision)).unwrap_err(),
+            repo.delete(&post, &post.revision.clone()).unwrap_err(),
             RepoError::Conflict
         ));
         assert!(path.exists(), "衝突時は削除しない");
@@ -1029,7 +1073,7 @@ mod tests {
         let mut post = repo.find("b").unwrap();
         post.front_matter.as_mut().unwrap().slug = "a".to_string();
 
-        let err = repo.save(&post, None).unwrap_err();
+        let err = repo.save(&post, &post.revision.clone()).unwrap_err();
         assert!(err.to_string().contains("既に別の記事"));
     }
 
@@ -1049,6 +1093,6 @@ mod tests {
         let mut post = repo.find("a").unwrap();
         post.front_matter.as_mut().unwrap().slug = "../evil".to_string();
 
-        assert!(repo.save(&post, None).is_err());
+        assert!(repo.save(&post, &post.revision.clone()).is_err());
     }
 }

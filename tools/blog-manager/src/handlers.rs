@@ -1,5 +1,5 @@
-use crate::model::{parse_tags_input, tags_to_input, Category, CoverImage, FrontMatter};
-use crate::repository::{PostFile, Repository, Status};
+use crate::model::{merge_tags_input, tags_to_input, Category, CoverImage, FrontMatter};
+use crate::repository::{PostFile, RepoError, Repository, Status};
 use askama::Template;
 use axum::extract::{Path, State};
 use axum::http::{header, StatusCode};
@@ -222,7 +222,9 @@ fn not_found(detail: &str) -> Response {
 
 fn render_detail(post: PostFile, flash: &str) -> Response {
     let front_matter = post.front_matter.clone();
-    let editable = front_matter.is_some();
+    // 編集・削除リンクは `/posts/{slug}` 配下のルートを使うため、
+    // ルートに乗る記事 (slug が有効) だけ操作できる
+    let editable = post.is_routable();
     let error = post.error_summary();
     let detail_path = post.detail_path();
 
@@ -303,6 +305,8 @@ struct FormTemplate {
     revision: String,
     errors: Vec<String>,
     values: FormValues,
+    /// 楽観ロック衝突。再読み込みを促し、revision は空にして再送も拒否する。
+    conflict: bool,
 }
 
 #[derive(Default, Clone)]
@@ -405,7 +409,7 @@ impl PostForm {
         let cover_width = parse_dimension(&self.cover_width, "coverImage.width", &mut errors);
         let cover_height = parse_dimension(&self.cover_height, "coverImage.height", &mut errors);
 
-        let tags = match parse_tags_input(&self.tags) {
+        let tags = match merge_tags_input(&self.tags, &base.tags) {
             Ok(tags) => tags,
             Err(error) => {
                 errors.push(error);
@@ -490,6 +494,7 @@ fn form_template_new(values: FormValues, errors: Vec<String>) -> FormTemplate {
         revision: String::new(),
         errors,
         values,
+        conflict: false,
     }
 }
 
@@ -534,6 +539,7 @@ pub async fn edit_form(State(state): State<AppState>, Path(slug): Path<String>) 
         revision: post.revision.clone(),
         errors: Vec::new(),
         values: FormValues::from_front_matter(&front_matter, &post.body),
+        conflict: false,
     })
 }
 
@@ -554,6 +560,8 @@ pub async fn update(
     let front_matter = match form.to_front_matter(current.clone()) {
         Ok(front_matter) => front_matter,
         Err(errors) => {
+            // 入力エラー時は **フォームが持ってきた revision を維持**する。
+            // 最新の revision を返すと、再送信で他人の保存内容を上書きできてしまう。
             return render_template(FormTemplate {
                 heading: "記事を編集",
                 is_edit: true,
@@ -561,9 +569,10 @@ pub async fn update(
                 slug_readonly: post.status == Status::Published,
                 category_readonly: post.status == Status::Published,
                 file_path: post.path.display().to_string(),
-                revision: post.revision.clone(),
+                revision: form.expected_revision.clone(),
                 errors,
                 values: form.values(),
+                conflict: false,
             });
         }
     };
@@ -574,10 +583,7 @@ pub async fn update(
         ..post.clone()
     };
 
-    match state
-        .repo
-        .save(&updated, Some(form.expected_revision.as_str()))
-    {
+    match state.repo.save(&updated, &form.expected_revision) {
         Ok(()) => {
             let target = state
                 .repo
@@ -587,7 +593,7 @@ pub async fn update(
             Redirect::to(&format!("{target}?flash=updated")).into_response()
         }
         Err(err) => {
-            let errors = vec![err.display_message()];
+            let conflict = matches!(err, RepoError::Conflict | RepoError::RevisionRequired);
             render_template(FormTemplate {
                 heading: "記事を編集",
                 is_edit: true,
@@ -595,9 +601,15 @@ pub async fn update(
                 slug_readonly: post.status == Status::Published,
                 category_readonly: post.status == Status::Published,
                 file_path: post.path.display().to_string(),
-                revision: post.revision.clone(),
-                errors,
+                // 衝突時は revision を空にして、再送信でも保存できないようにする
+                revision: if conflict {
+                    String::new()
+                } else {
+                    form.expected_revision.clone()
+                },
+                errors: vec![err.display_message()],
                 values: form.values(),
+                conflict,
             })
         }
     }
@@ -649,10 +661,7 @@ pub async fn delete(
         return not_found(&format!("slug: {slug}"));
     };
 
-    match state
-        .repo
-        .delete(&post, Some(form.expected_revision.as_str()))
-    {
+    match state.repo.delete(&post, &form.expected_revision) {
         Ok(trash_path) => {
             tracing::info!(path = %trash_path.display(), "moved article to trash");
             Redirect::to("/?flash=deleted").into_response()

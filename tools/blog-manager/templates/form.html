@@ -10,6 +10,19 @@
 
 <h1 class="text-2xl font-bold mb-4">{{ heading }}</h1>
 
+{% if conflict %}
+<div role="alert" class="alert alert-warning mb-4">
+  <div>
+    <div class="font-bold">他の編集が先に保存されました</div>
+    <div class="text-sm">
+      このフォームの内容は最新ではありません。下の「最新の内容を読み込む」から開き直し、
+      必要な変更を入れ直してください（このまま再送信しても保存されません）。
+    </div>
+    <a class="btn btn-sm btn-warning mt-2" href="{{ action }}/edit">最新の内容を読み込む</a>
+  </div>
+</div>
+{% endif %}
+
 {% if !errors.is_empty() %}
 <div role="alert" class="alert alert-error mb-4">
   <div>

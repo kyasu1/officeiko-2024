@@ -1,12 +1,9 @@
-use axum::routing::{get, post};
-use axum::Router;
-use blog_manager::handlers::{self, AppState};
+use blog_manager::app::router;
+use blog_manager::handlers::AppState;
 use blog_manager::repository::Repository;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::path::PathBuf;
 use std::sync::Arc;
-use tower_http::services::ServeDir;
-use tower_http::trace::TraceLayer;
 
 #[tokio::main]
 async fn main() {
@@ -47,20 +44,7 @@ async fn main() {
 
     let static_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("static");
 
-    let app = Router::new()
-        .route("/", get(handlers::list))
-        .route("/posts/new", get(handlers::new_form))
-        .route("/posts", post(handlers::create))
-        .route("/posts/{slug}", get(handlers::detail_with_flash))
-        .route("/posts/{slug}", post(handlers::update))
-        .route("/posts/{slug}/edit", get(handlers::edit_form))
-        .route("/posts/{slug}/delete", get(handlers::delete_confirm))
-        .route("/posts/{slug}/delete", post(handlers::delete))
-        // 解析できなかった記事は slug を持たないため、状態 + ファイル名で開く
-        .route("/files/{status}/{file_name}", get(handlers::file_detail))
-        .nest_service("/static", ServeDir::new(static_dir))
-        .layer(TraceLayer::new_for_http())
-        .with_state(state);
+    let app = router(state, static_dir);
 
     let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), port);
     let listener = match tokio::net::TcpListener::bind(addr).await {
