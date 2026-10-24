@@ -10,3 +10,4 @@ functions/render
 .env
 
 .DS_Store
+.opencode/
