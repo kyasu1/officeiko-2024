@@ -40,6 +40,8 @@ async fn main() {
     let app = Router::new()
         .route("/", get(handlers::list))
         .route("/posts/{slug}", get(handlers::detail))
+        // 解析できなかった記事は slug を持たないため、状態 + ファイル名で開く
+        .route("/files/{status}/{file_name}", get(handlers::file_detail))
         .nest_service("/static", ServeDir::new(static_dir))
         .layer(TraceLayer::new_for_http())
         .with_state(state);

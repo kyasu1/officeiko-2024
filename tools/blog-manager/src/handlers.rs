@@ -43,43 +43,46 @@ struct ListTemplate {
 pub struct PostRow {
     pub title: String,
     pub slug: String,
-    /// 詳細ページの URL に使う鍵 (正常=slug / 壊れ=ファイル名)
-    pub key: String,
+    /// 詳細ページの URL (正常=slug / 解析不能=状態+ファイル名)
+    pub detail_path: String,
     pub status_label: &'static str,
     pub status_class: &'static str,
     pub category_label: &'static str,
     pub published_on: String,
     pub file_name: String,
-    pub is_broken: bool,
+    pub has_errors: bool,
     pub error: String,
 }
 
 impl PostRow {
     fn from_post(post: &PostFile) -> Self {
+        let has_errors = post.has_errors();
+        let error = post.error_summary();
+
         match &post.front_matter {
             Some(front_matter) => Self {
                 title: front_matter.title.clone(),
                 slug: front_matter.slug.clone(),
-                key: front_matter.slug.clone(),
+                detail_path: post.detail_path(),
                 status_label: post.status.label(),
                 status_class: status_class(post.status),
                 category_label: front_matter.category.label(),
                 published_on: front_matter.published_on.clone(),
                 file_name: post.file_name.clone(),
-                is_broken: false,
-                error: String::new(),
+                has_errors,
+                error,
             },
             None => Self {
                 title: post.title().to_string(),
                 slug: String::new(),
-                key: post.lookup_key(),
+                detail_path: post.detail_path(),
                 status_label: post.status.label(),
                 status_class: status_class(post.status),
                 category_label: "-",
                 published_on: "-".to_string(),
                 file_name: post.file_name.clone(),
-                is_broken: true,
-                error: post.parse_error.clone().unwrap_or_default(),
+                has_errors,
+                error,
             },
         }
     }
@@ -104,7 +107,7 @@ pub async fn list(State(state): State<AppState>) -> Response {
         .iter()
         .filter(|post| post.status == Status::Draft)
         .count();
-    let broken_count = posts.iter().filter(|post| post.is_broken()).count();
+    let broken_count = posts.iter().filter(|post| post.has_errors()).count();
 
     render_template(ListTemplate {
         content_dir: state.repo.content_dir().display().to_string(),
@@ -142,17 +145,46 @@ struct DetailTemplate {
 }
 
 pub async fn detail(State(state): State<AppState>, Path(slug): Path<String>) -> Response {
-    let Some(post) = state.repo.find(&slug) else {
-        return (
-            StatusCode::NOT_FOUND,
-            Html(format!(
-                "<h1>記事が見つかりません</h1><p>slug: <code>{}</code></p><p><a href=\"/\">一覧へ戻る</a></p>",
-                html_escape(&slug)
-            )),
-        )
-            .into_response();
-    };
+    match state.repo.find(&slug) {
+        Some(post) => render_detail(post),
+        None => not_found(&format!("slug: {slug}")),
+    }
+}
 
+/// 解析できなかった記事を状態 + ファイル名で表示する (slug 空間と混ぜない)。
+pub async fn file_detail(
+    State(state): State<AppState>,
+    Path((status, file_name)): Path<(String, String)>,
+) -> Response {
+    let Some(status) = parse_status(&status) else {
+        return not_found(&format!("status: {status}"));
+    };
+    match state.repo.find_file(status, &file_name) {
+        Some(post) => render_detail(post),
+        None => not_found(&format!("file: {file_name}")),
+    }
+}
+
+fn parse_status(value: &str) -> Option<Status> {
+    match value {
+        "published" => Some(Status::Published),
+        "draft" => Some(Status::Draft),
+        _ => None,
+    }
+}
+
+fn not_found(detail: &str) -> Response {
+    (
+        StatusCode::NOT_FOUND,
+        Html(format!(
+            "<h1>記事が見つかりません</h1><p><code>{}</code></p><p><a href=\"/\">一覧へ戻る</a></p>",
+            html_escape(detail)
+        )),
+    )
+        .into_response()
+}
+
+fn render_detail(post: PostFile) -> Response {
     let front_matter = post.front_matter.clone();
     let template = match front_matter {
         Some(fm) => DetailTemplate {
@@ -180,7 +212,7 @@ pub async fn detail(State(state): State<AppState>, Path(slug): Path<String>) -> 
         },
         None => DetailTemplate {
             title: post.file_name.clone(),
-            slug: slug.clone(),
+            slug: post.slug().unwrap_or_default().to_string(),
             category_label: "-",
             published_on: "-".to_string(),
             author: "-".to_string(),
@@ -195,7 +227,7 @@ pub async fn detail(State(state): State<AppState>, Path(slug): Path<String>) -> 
             body: String::new(),
             raw_front_matter: String::new(),
             file_path: post.path.display().to_string(),
-            error: post.parse_error.clone().unwrap_or_default(),
+            error: post.error_summary(),
         },
     };
 

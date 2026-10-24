@@ -35,16 +35,23 @@ impl Category {
 }
 
 /// Elm 側 `tagDecoder` が `attributes.name` / `attributes.slug` を要求する。
+/// 未知キーはタグを編集しない保存でも失われないよう保持する。
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct TagAttributes {
     pub name: String,
     pub slug: String,
+    /// 未知キーの保護 (ネストした未知キーも保持する)
+    #[serde(flatten, default)]
+    pub extra: BTreeMap<String, serde_yaml::Value>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Tag {
     #[serde(default)]
     pub attributes: TagAttributes,
+    /// 未知キーの保護 (例: `id` など)
+    #[serde(flatten, default)]
+    pub extra: BTreeMap<String, serde_yaml::Value>,
 }
 
 /// カバー画像。`alternativeText` は Elm の `JD.field` が必須のため、
@@ -108,6 +115,13 @@ impl FrontMatter {
         }
         if self.cover_image.url.trim().is_empty() {
             errors.push("coverImage.url は必須です".to_string());
+        } else if !is_absolute_http_url(&self.cover_image.url) {
+            // Elm の `Image.decoder` は `Url.fromString` を使うため、
+            // 絶対 URL でないとサイトのビルドが壊れる。
+            errors.push(format!(
+                "coverImage.url は http(s) の絶対 URL で指定してください (現在: {:?})",
+                self.cover_image.url
+            ));
         }
         if self.cover_image.width == 0 || self.cover_image.height == 0 {
             errors.push("coverImage の width/height は 1 以上で指定してください".to_string());
@@ -129,6 +143,17 @@ pub fn is_valid_slug(slug: &str) -> bool {
     static RE: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new();
     let re = RE.get_or_init(|| regex::Regex::new(r"^[a-z0-9][a-z0-9-]*$").expect("valid regex"));
     re.is_match(slug)
+}
+
+/// `http://` または `https://` で始まる絶対 URL か。
+///
+/// Elm の `Url.fromString` は相対 URL を受理しないため、保存前にここで弾く。
+pub fn is_absolute_http_url(url: &str) -> bool {
+    static RE: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new();
+    let re = RE.get_or_init(|| {
+        regex::Regex::new(r"^https?://[^\s/?#]+(?:[/?#]\S*)?$").expect("valid regex")
+    });
+    re.is_match(url)
 }
 
 #[cfg(test)]
@@ -155,6 +180,41 @@ mod tests {
         let blog = front_matter_with(Category::Blog, "fake-site-alert");
         assert_eq!(news.url_path(), "/post/summer-vacation-2026");
         assert_eq!(blog.url_path(), "/blog/fake-site-alert");
+    }
+
+    #[test]
+    fn absolute_http_urls() {
+        for url in [
+            "https://image.officeiko.work/cover_summer_vacation.jpg",
+            "http://example.com/a.png",
+            "https://example.com",
+            "https://example.com/a.jpg?v=1#frag",
+        ] {
+            assert!(is_absolute_http_url(url), "{url} should be valid");
+        }
+    }
+
+    #[test]
+    fn rejects_non_absolute_or_unsupported_urls() {
+        for url in [
+            "",
+            "not-a-url",
+            "/images/a.jpg",
+            "image.officeiko.work/a.jpg",
+            "ftp://example.com/a.jpg",
+            "https://exa mple.com/a.jpg",
+            "https://",
+        ] {
+            assert!(!is_absolute_http_url(url), "{url} should be invalid");
+        }
+    }
+
+    #[test]
+    fn validate_rejects_relative_cover_image_url() {
+        let mut front_matter = front_matter_with(Category::Blog, "a");
+        front_matter.cover_image.url = "not-a-url".to_string();
+        let errors = front_matter.validate();
+        assert!(errors.iter().any(|error| error.contains("絶対 URL")));
     }
 
     fn front_matter_with(category: Category, slug: &str) -> FrontMatter {

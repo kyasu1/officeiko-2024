@@ -36,12 +36,12 @@
             <td class="whitespace-nowrap text-sm">{{ row.category_label }}</td>
             <td class="whitespace-nowrap text-sm font-mono">{{ row.published_on }}</td>
             <td>
-              {% if row.is_broken %}
-              <a class="link link-hover text-error font-medium" href="/posts/{{ row.key }}">{{ row.title }}</a>
+              {% if row.has_errors %}
+              <a class="link link-hover text-error font-medium" href="{{ row.detail_path }}">{{ row.title }}</a>
               <span class="badge badge-error badge-sm ml-1">要修正</span>
               <div class="text-xs text-error/80">{{ row.error }}</div>
               {% else %}
-              <a class="link link-hover font-medium" href="/posts/{{ row.key }}">{{ row.title }}</a>
+              <a class="link link-hover font-medium" href="{{ row.detail_path }}">{{ row.title }}</a>
               {% endif %}
             </td>
             <td class="font-mono text-xs">{{ row.slug }}</td>

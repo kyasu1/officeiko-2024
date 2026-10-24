@@ -43,6 +43,10 @@ cargo run              # http://127.0.0.1:3001
 - slug は `^[a-z0-9][a-z0-9-]*$`。公開済み・下書きを横断して一意
 - 本文は frontmatter 境界より後ろをバイト単位でそのまま保持する
 - 解析できない記事は壊さずに一覧へ出し、「要修正」としてエラー理由を表示する
+- 解析はできても **frontmatter の値が不正な記事も「要修正」** として表示する
+  (例: `coverImage.url` が絶対 URL でないと Elm の `Url.fromString` が失敗しサイトのビルドが壊れるため、
+  保存時に `http(s)://` の絶対 URL を要求する)
+- `tags` / `tags[].attributes` の内部にある未知キーも保持する
 
 ## 画面 (M2 時点)
 
@@ -50,7 +54,12 @@ cargo run              # http://127.0.0.1:3001
 |---|---|---|
 | GET | `/` | 記事一覧 (公開済み + 下書き、状態・カテゴリ・公開日・slug・ファイル名) |
 | GET | `/posts/{slug}` | 記事詳細 (frontmatter / coverImage / 本文 / raw YAML) |
+| GET | `/files/{status}/{file_name}` | **解析できなかった記事**の詳細 (status は `published` \| `draft`) |
 | GET | `/static/*` | 静的ファイル |
+
+解析できない記事は slug を持たないため、`/posts/{slug}` ではなく状態 + ファイル名で開く。
+slug 空間とファイル名空間を混ぜないことで、`slug=shadowed` の正常記事と `draft/shadowed.md` の
+壊れた記事が併存しても互いを隠さない。
 
 作成・編集・削除・公開は M3 以降で追加する。
 
@@ -68,6 +77,9 @@ cargo test
 - 壊れた記事の一覧表示と到達性
 - atomic write と一時ファイルの残留チェック
 - slug 重複・不正 slug の拒否
+- `coverImage.url` の絶対 URL 検証
+- タグ内部の未知キー保持
+- slug 空間とファイル名空間の衝突 (`slug=shadowed` + `draft/shadowed.md` など)
 
 ## 静的アセット
 

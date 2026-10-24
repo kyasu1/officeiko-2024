@@ -59,6 +59,8 @@ pub struct PostFile {
     pub body: String,
     pub raw_front_matter: String,
     pub parse_error: Option<String>,
+    /// 解析はできたが frontmatter の内容が不正な場合の理由
+    pub validation_errors: Vec<String>,
 }
 
 impl PostFile {
@@ -66,19 +68,37 @@ impl PostFile {
         self.front_matter.as_ref().map(|fm| fm.slug.as_str())
     }
 
-    /// 拡張子を除いたファイル名。解析できない記事を一覧から辿るための鍵。
-    pub fn file_stem(&self) -> String {
-        self.path
-            .file_stem()
-            .map(|stem| stem.to_string_lossy().to_string())
-            .unwrap_or_else(|| self.file_name.clone())
+    /// 解析自体に失敗した記事 (slug を持たない)
+    pub fn is_unparseable(&self) -> bool {
+        self.front_matter.is_none()
     }
 
-    /// 詳細ページの URL に使う鍵。正常な記事は slug、壊れた記事はファイル名。
-    pub fn lookup_key(&self) -> String {
-        self.slug()
-            .map(str::to_string)
-            .unwrap_or_else(|| self.file_stem())
+    /// 要修正 (解析失敗 または frontmatter の検証エラー)
+    pub fn has_errors(&self) -> bool {
+        self.is_unparseable() || !self.validation_errors.is_empty()
+    }
+
+    /// 要修正の理由 (空なら問題なし)
+    pub fn error_summary(&self) -> String {
+        if let Some(error) = &self.parse_error {
+            return error.clone();
+        }
+        self.validation_errors.join(" / ")
+    }
+
+    /// 詳細ページの URL。
+    ///
+    /// 解析できた記事 (検証エラーがあっても) は slug、解析できない記事は
+    /// **状態 + ファイル名** で引く。slug 空間とファイル名空間を混ぜない。
+    pub fn detail_path(&self) -> String {
+        match self.slug() {
+            Some(slug) => format!("/posts/{slug}"),
+            None => format!(
+                "/files/{}/{}",
+                self.status.as_str(),
+                percent_encode(&self.file_name)
+            ),
+        }
     }
 
     pub fn title(&self) -> &str {
@@ -183,20 +203,27 @@ impl Repository {
                     body: String::new(),
                     raw_front_matter: String::new(),
                     parse_error: Some(format!("読み込みに失敗しました: {err}")),
+                    validation_errors: Vec::new(),
                 }
             }
         };
 
         match parse(&raw) {
-            Ok(parsed) => PostFile {
-                status,
-                path: path.to_path_buf(),
-                file_name,
-                front_matter: Some(parsed.front_matter),
-                body: parsed.body,
-                raw_front_matter: parsed.raw_front_matter,
-                parse_error: None,
-            },
+            Ok(parsed) => {
+                // 構造として読めても、値が不正ならサイトのビルドを壊す。
+                // 一覧で「要修正」として見えるようにする。
+                let validation_errors = parsed.front_matter.validate();
+                PostFile {
+                    status,
+                    path: path.to_path_buf(),
+                    file_name,
+                    front_matter: Some(parsed.front_matter),
+                    body: parsed.body,
+                    raw_front_matter: parsed.raw_front_matter,
+                    parse_error: None,
+                    validation_errors,
+                }
+            }
             Err(err) => PostFile {
                 status,
                 path: path.to_path_buf(),
@@ -205,25 +232,25 @@ impl Repository {
                 body: String::new(),
                 raw_front_matter: String::new(),
                 parse_error: Some(err.to_string()),
+                validation_errors: Vec::new(),
             },
         }
     }
 
-    /// 記事を引く。
+    /// slug で記事を引く (slug 空間のみ)。
+    pub fn find(&self, slug: &str) -> Option<PostFile> {
+        self.list()
+            .into_iter()
+            .find(|post| post.slug() == Some(slug))
+    }
+
+    /// **解析できなかった記事** を状態 + ファイル名で引く。
     ///
-    /// まず frontmatter の slug で探し、見つからなければ **解析できなかった記事** を
-    /// ファイル名 (拡張子なし) で探す。壊れた記事を一覧から開いて原因を確認できるようにするため。
-    pub fn find(&self, key: &str) -> Option<PostFile> {
-        let posts = self.list();
-        posts
-            .iter()
-            .find(|post| post.slug() == Some(key))
-            .or_else(|| {
-                posts
-                    .iter()
-                    .find(|post| post.is_broken() && post.file_stem() == key)
-            })
-            .cloned()
+    /// 任意のパスを join せず、一覧に実在するファイルだけを対象にする。
+    pub fn find_file(&self, status: Status, file_name: &str) -> Option<PostFile> {
+        self.list().into_iter().find(|post| {
+            post.status == status && post.file_name == file_name && post.is_unparseable()
+        })
     }
 
     /// slug が既に使われているか (公開済み・下書きの両方を見る)。
@@ -318,7 +345,11 @@ pub fn atomic_write(path: &Path, contents: &str) -> io::Result<()> {
         .unwrap_or_default();
     let temp_path = dir.join(format!(".{file_name}.tmp-{}-{nanos}", std::process::id()));
 
-    fs::write(&temp_path, contents)?;
+    if let Err(err) = fs::write(&temp_path, contents) {
+        let _ = fs::remove_file(&temp_path);
+        return Err(err);
+    }
+
     match fs::rename(&temp_path, path) {
         Ok(()) => Ok(()),
         Err(err) => {
@@ -326,6 +357,20 @@ pub fn atomic_write(path: &Path, contents: &str) -> io::Result<()> {
             Err(err)
         }
     }
+}
+
+/// パスセグメント用の最小パーセントエンコード (非予約文字以外をエスケープ)。
+fn percent_encode(input: &str) -> String {
+    const UNRESERVED: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~";
+    let mut encoded = String::with_capacity(input.len());
+    for byte in input.as_bytes() {
+        if UNRESERVED.contains(byte) {
+            encoded.push(*byte as char);
+        } else {
+            encoded.push_str(&format!("%{byte:02X}"));
+        }
+    }
+    encoded
 }
 
 impl fmt::Display for Status {
@@ -355,10 +400,12 @@ mod tests {
         paths
     }
 
+    /// 運用中の `content/posts` を全件パースできること。
+    /// 記事は増えるので件数は固定しない (件数固定は記事追加のたびに落ちてしまう)。
     #[test]
     fn parses_all_existing_articles() {
         let paths = real_article_paths();
-        assert_eq!(paths.len(), 8, "既存記事は8件のはず");
+        assert!(!paths.is_empty(), "content/posts に記事があること");
 
         for path in paths {
             let raw = fs::read_to_string(&path).expect("readable");
@@ -494,29 +541,102 @@ mod tests {
         assert!(posts[0].is_broken());
         assert!(posts[0].parse_error.is_some(), "壊れた記事は理由を持つ");
 
-        // 一覧から壊れた記事を開けること (ファイル名で引く)
-        let found = repo.find("broken").expect("broken article is reachable");
-        assert!(found.is_broken());
-        assert_eq!(found.lookup_key(), "broken");
+        // 一覧から壊れた記事を開けること (状態 + ファイル名で引く)
+        let found = repo
+            .find_file(Status::Published, "broken.md")
+            .expect("broken article is reachable");
+        assert!(found.is_unparseable());
+        assert_eq!(found.detail_path(), "/files/published/broken.md");
+        // slug 空間には現れない
+        assert!(repo.find("broken").is_none());
     }
 
-    /// 正常な記事の slug が、壊れた記事のファイル名による検索より優先されること。
+    /// 正常 slug・posts の壊れファイル・drafts の同名壊れファイルが併存しても、
+    /// それぞれが意図したファイルを指すこと。
     #[test]
-    fn valid_slug_wins_over_broken_file_stem() {
+    fn slug_and_broken_file_identifiers_do_not_collide() {
         let tmp = tempfile::tempdir().unwrap();
         let content = tmp.path();
         fs::create_dir_all(content.join("posts")).unwrap();
+        fs::create_dir_all(content.join("drafts")).unwrap();
         fs::write(
             content.join("posts/valid.md"),
             "---\ntitle: V\nslug: shadowed\npublishedOn: 2026-01-01\ncategory: news\ntags: []\ncoverImage:\n  url: https://example.com/a.jpg\n  width: 1\n  height: 1\n  alternativeText: null\n---\nbody\n",
         )
         .unwrap();
-        fs::write(content.join("posts/shadowed.md"), "broken\n").unwrap();
+        fs::write(content.join("posts/shadowed.md"), "broken posts\n").unwrap();
+        fs::write(content.join("drafts/shadowed.md"), "broken drafts\n").unwrap();
 
         let repo = Repository::new(content);
-        let found = repo.find("shadowed").expect("found");
-        assert!(!found.is_broken(), "slug 一致を優先する");
-        assert_eq!(found.file_name, "valid.md");
+
+        let valid = repo.find("shadowed").expect("slug lookup");
+        assert!(!valid.is_unparseable());
+        assert_eq!(valid.detail_path(), "/posts/shadowed");
+
+        let published_broken = repo
+            .find_file(Status::Published, "shadowed.md")
+            .expect("published broken file");
+        assert_eq!(published_broken.body, String::new());
+        assert_eq!(
+            published_broken.detail_path(),
+            "/files/published/shadowed.md"
+        );
+
+        let draft_broken = repo
+            .find_file(Status::Draft, "shadowed.md")
+            .expect("draft broken file");
+        assert_eq!(draft_broken.detail_path(), "/files/draft/shadowed.md");
+
+        // 一覧の各行が別々の detail_path を持つこと
+        let paths: Vec<String> = repo.list().iter().map(PostFile::detail_path).collect();
+        assert_eq!(paths.len(), 3);
+        assert_eq!(
+            paths
+                .iter()
+                .collect::<std::collections::BTreeSet<_>>()
+                .len(),
+            3,
+            "各行が一意な詳細URLを持つ: {paths:?}"
+        );
+    }
+
+    /// 解析はできても値が不正な記事は「要修正」として扱う (サイトのビルドを壊すため)。
+    #[test]
+    fn invalid_values_are_reported_as_errors() {
+        let tmp = tempfile::tempdir().unwrap();
+        let content = tmp.path();
+        fs::create_dir_all(content.join("posts")).unwrap();
+        fs::write(
+            content.join("posts/relative-url.md"),
+            "---\ntitle: T\nslug: relative-url\npublishedOn: 2026-01-01\ncategory: news\ntags: []\ncoverImage:\n  url: not-a-url\n  width: 1\n  height: 1\n  alternativeText: null\n---\nbody\n",
+        )
+        .unwrap();
+
+        let repo = Repository::new(content);
+        let post = repo.find("relative-url").expect("parseable");
+        assert!(!post.is_unparseable());
+        assert!(post.has_errors());
+        assert!(post.error_summary().contains("絶対 URL"));
+    }
+
+    /// タグ内の未知キーが保存で失われないこと (codex 指摘)。
+    #[test]
+    fn keeps_unknown_keys_inside_tags() {
+        let raw = "---\ntitle: t\nslug: s\npublishedOn: 2026-01-01\ncategory: blog\ntags:\n  - id: 42\n    attributes:\n      name: タグ\n      slug: tag\n      customNested: keep-me\ncoverImage:\n  url: https://example.com/a.jpg\n  width: 1\n  height: 1\n  alternativeText: null\n---\nbody\n";
+
+        let parsed = parse(raw).unwrap();
+        let rendered = render(&parsed.front_matter, &parsed.body).unwrap();
+        let reparsed = parse(&rendered).unwrap();
+
+        assert!(
+            rendered.contains("id: 42"),
+            "tag 直下の未知キー: {rendered}"
+        );
+        assert!(
+            rendered.contains("customNested: keep-me"),
+            "attributes 内の未知キー: {rendered}"
+        );
+        assert_eq!(parsed.front_matter, reparsed.front_matter);
     }
 
     #[test]
