@@ -1,0 +1,178 @@
+use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
+
+/// 記事カテゴリ。`src/Post.elm` の `categoryDecoder` と対応する。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Category {
+    News,
+    Blog,
+}
+
+impl Category {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Category::News => "news",
+            Category::Blog => "blog",
+        }
+    }
+
+    /// サイト上の表示ラベル (`Post.categoryToLabel` と一致させる)
+    pub fn label(self) -> &'static str {
+        match self {
+            Category::News => "お知らせ",
+            Category::Blog => "ブログ",
+        }
+    }
+
+    /// 公開URLのパス接頭辞。`/post/:slug` は News、`/blog/:slug` は Blog。
+    pub fn url_prefix(self) -> &'static str {
+        match self {
+            Category::News => "post",
+            Category::Blog => "blog",
+        }
+    }
+}
+
+/// Elm 側 `tagDecoder` が `attributes.name` / `attributes.slug` を要求する。
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct TagAttributes {
+    pub name: String,
+    pub slug: String,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct Tag {
+    #[serde(default)]
+    pub attributes: TagAttributes,
+}
+
+/// カバー画像。`alternativeText` は Elm の `JD.field` が必須のため、
+/// 未設定でも `null` として必ず出力する (skip しない)。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct CoverImage {
+    pub url: String,
+    pub width: u32,
+    pub height: u32,
+    #[serde(rename = "alternativeText")]
+    pub alternative_text: Option<String>,
+    /// 未知キーの保護 (ネストした未知キーも保持する)
+    #[serde(flatten, default)]
+    pub extra: BTreeMap<String, serde_yaml::Value>,
+}
+
+/// 記事の frontmatter。既存記事のスキーマと同一。
+///
+/// `extra` は未知のトップレベルキーを保持するためのもの。
+/// 既存記事を壊さずに読み書きするために必要。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct FrontMatter {
+    pub title: String,
+    pub slug: String,
+    #[serde(default)]
+    pub author: Option<String>,
+    #[serde(rename = "publishedOn")]
+    pub published_on: String,
+    pub category: Category,
+    #[serde(default)]
+    pub tags: Vec<Tag>,
+    #[serde(rename = "coverImage")]
+    pub cover_image: CoverImage,
+    #[serde(flatten, default)]
+    pub extra: BTreeMap<String, serde_yaml::Value>,
+}
+
+impl FrontMatter {
+    /// 公開済み記事の URL パス (例: `/blog/fake-site-alert`)
+    pub fn url_path(&self) -> String {
+        format!("/{}/{}", self.category.url_prefix(), self.slug)
+    }
+
+    pub fn validate(&self) -> Vec<String> {
+        let mut errors = Vec::new();
+
+        if self.title.trim().is_empty() {
+            errors.push("title は必須です".to_string());
+        }
+        if !is_valid_slug(&self.slug) {
+            errors.push(format!(
+                "slug は英小文字・数字・ハイフンのみ使用できます (現在: {:?})",
+                self.slug
+            ));
+        }
+        if chrono::NaiveDate::parse_from_str(&self.published_on, "%Y-%m-%d").is_err() {
+            errors.push(format!(
+                "publishedOn は YYYY-MM-DD 形式で指定してください (現在: {:?})",
+                self.published_on
+            ));
+        }
+        if self.cover_image.url.trim().is_empty() {
+            errors.push("coverImage.url は必須です".to_string());
+        }
+        if self.cover_image.width == 0 || self.cover_image.height == 0 {
+            errors.push("coverImage の width/height は 1 以上で指定してください".to_string());
+        }
+        for (index, tag) in self.tags.iter().enumerate() {
+            if tag.attributes.name.is_empty() || tag.attributes.slug.is_empty() {
+                errors.push(format!(
+                    "tags[{index}] は attributes.name / attributes.slug が必須です"
+                ));
+            }
+        }
+
+        errors
+    }
+}
+
+/// slug は `^[a-z0-9][a-z0-9-]*$` (パス横断や大文字を許さない)
+pub fn is_valid_slug(slug: &str) -> bool {
+    static RE: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new();
+    let re = RE.get_or_init(|| regex::Regex::new(r"^[a-z0-9][a-z0-9-]*$").expect("valid regex"));
+    re.is_match(slug)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn valid_slugs() {
+        for slug in ["a", "post-2024", "summer-vacation-2026", "0", "a1-b2"] {
+            assert!(is_valid_slug(slug), "{slug} should be valid");
+        }
+    }
+
+    #[test]
+    fn invalid_slugs() {
+        for slug in ["", "-a", "A", "a_b", "a/b", "../etc/passwd", "a b", "日本"] {
+            assert!(!is_valid_slug(slug), "{slug} should be invalid");
+        }
+    }
+
+    #[test]
+    fn url_path_uses_category_prefix() {
+        let news = front_matter_with(Category::News, "summer-vacation-2026");
+        let blog = front_matter_with(Category::Blog, "fake-site-alert");
+        assert_eq!(news.url_path(), "/post/summer-vacation-2026");
+        assert_eq!(blog.url_path(), "/blog/fake-site-alert");
+    }
+
+    fn front_matter_with(category: Category, slug: &str) -> FrontMatter {
+        FrontMatter {
+            title: "t".to_string(),
+            slug: slug.to_string(),
+            author: None,
+            published_on: "2026-01-01".to_string(),
+            category,
+            tags: vec![],
+            cover_image: CoverImage {
+                url: "https://example.com/a.jpg".to_string(),
+                width: 1,
+                height: 1,
+                alternative_text: None,
+                extra: BTreeMap::new(),
+            },
+            extra: BTreeMap::new(),
+        }
+    }
+}

@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}記事一覧 | ブログ管理{% endblock %}
+{% block content %}
+<div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+  <h1 class="text-2xl font-bold">記事一覧</h1>
+  <div class="text-xs text-base-content/60 font-mono">{{ content_dir }}</div>
+</div>
+
+<div class="mb-4 flex flex-wrap items-center gap-2">
+  <span class="badge badge-lg">全 {{ rows.len() }} 件</span>
+  <span class="badge badge-lg badge-success badge-outline">公開済み {{ published_count }}</span>
+  <span class="badge badge-lg badge-warning badge-outline">下書き {{ draft_count }}</span>
+  {% if broken_count > 0 %}
+  <span class="badge badge-lg badge-error badge-outline">要修正 {{ broken_count }}</span>
+  {% endif %}
+</div>
+
+<div class="card bg-base-100 shadow">
+  <div class="card-body p-0">
+    <div class="overflow-x-auto">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>状態</th>
+            <th>カテゴリ</th>
+            <th>公開日</th>
+            <th>タイトル</th>
+            <th>slug</th>
+            <th>ファイル</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+          <tr>
+            <td><span class="badge {{ row.status_class }} badge-sm">{{ row.status_label }}</span></td>
+            <td class="whitespace-nowrap text-sm">{{ row.category_label }}</td>
+            <td class="whitespace-nowrap text-sm font-mono">{{ row.published_on }}</td>
+            <td>
+              {% if row.is_broken %}
+              <a class="link link-hover text-error font-medium" href="/posts/{{ row.key }}">{{ row.title }}</a>
+              <span class="badge badge-error badge-sm ml-1">要修正</span>
+              <div class="text-xs text-error/80">{{ row.error }}</div>
+              {% else %}
+              <a class="link link-hover font-medium" href="/posts/{{ row.key }}">{{ row.title }}</a>
+              {% endif %}
+            </td>
+            <td class="font-mono text-xs">{{ row.slug }}</td>
+            <td class="font-mono text-xs text-base-content/60">{{ row.file_name }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
