@@ -58,10 +58,13 @@ pub fn build_post(fm: &FrontMatter, body: &str) -> Result<StandardPost, String> 
         .chars()
         .take(1500)
         .collect::<String>();
-    StandardPostBuilder::new()
+    let mut builder = StandardPostBuilder::new()
         .summary(summary)
-        .url(format!("https://officeiko.co.jp{}", fm.url_path()))
-        .image_url(&fm.cover_image.url)
-        .build()
-        .map_err(|e| e.to_string())
+        .url(format!("https://officeiko.co.jp{}", fm.url_path()));
+    // カバーは公開前に必須 (publish.run で検証) だが、None のまま呼ばれても
+    // 画像なしの STANDARD 投稿を組み立てる (ビルダーは image を任意とする)。
+    if let Some(url) = fm.cover_url() {
+        builder = builder.image_url(url);
+    }
+    builder.build().map_err(|e| e.to_string())
 }

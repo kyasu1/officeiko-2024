@@ -78,9 +78,9 @@ cargo run              # http://127.0.0.1:3001
 | GET | `/posts/{slug}` | 記事詳細 (frontmatter / coverImage / 本文 / raw YAML) |
 | GET | `/files/{status}/{file_name}` | **解析できなかった記事**の詳細 (status は `published` \| `draft`) |
 | GET | `/posts/new` | 新規記事フォーム（作成先は下書き） |
-| POST | `/posts` | 記事作成（`content/drafts/` に作成） |
+| POST | `/posts` | 記事作成（`content/drafts/` に作成）。`cover_file` によるカバー画像アップロード対応 |
 | GET | `/posts/{slug}/edit` | 編集フォーム（公開済みは slug / カテゴリ変更不可） |
-| POST | `/posts/{slug}` | 記事更新 |
+| POST | `/posts/{slug}` | 記事更新 (`multipart/form-data` / urlencoded 両対応) |
 | GET | `/posts/{slug}/delete` | 削除の確認 |
 | POST | `/posts/{slug}/delete` | 削除（`.trash/` に退避） |
 | GET | `/posts/{slug}/media/new` | メディア追加画面 (アップロードフォーム + 管理下メディア一覧) |
@@ -108,6 +108,24 @@ slug 空間とファイル名空間を混ぜないことで、`slug=shadowed` �
   presigned URL は書き込まない
 - R2 の既存メディア (`officeiko` バケットの既存キー) は管理対象外。手入力の URL 欄は維持
 - v1 ではメディアの削除機能を設けない (誤削除防止。孤児オブジェクトは許容)
+
+### カバー画像 (2026-10-24 設計)
+
+- 新規作成・編集フォームから `cover_file` で画像を選べる。**寸法 (width/height) は画像から自動取得**
+  し、URL 手入力は既存画像を利用する場合の補助として残す
+- **下書きはカバーなしで作成・保存・再編集できる**。未設定なら frontmatter に `coverImage` キー自体を
+  書かない (仮の URL を埋めない)。索引はカバーなし下書きを「要修正」にしない
+- **公開にはカバーが必要**。検証は下書き用 `FrontMatter::validate()` と公開用
+  `FrontMatter::validate_for_publish()` に分離し、後者は `publish::run` がファイル移動前に適用する
+- 下書きのカバーは RustFS URL、公開済み記事は保存時に R2 へ昇格して R2 URL を書く
+  (公開済み記事に RustFS URL を書かない規則はメディアと同じ)。下書きカバーは公開時の
+  メディア昇格 (§2.5 step 0) で R2 URL へ差し替わる
+- 画像不正・ストレージ障害・昇格失敗のいずれも**保存そのものを中止**し、既存カバーと本文を
+  そのまま残す。旧カバーのオブジェクトは削除しない (孤児オブジェクトは許容)
+- URL がないのに width/height/alt だけが入力された場合は「取り消し忘れ」としてエラーにし、
+  入力を黙って捨てない。カバーを取り消すには 4 項目をすべて空にする
+- axum 既定の 2MB ボディ上限は、multipart を受け付けるルートで `MAX_UPLOAD_BYTES` (10MB) に
+  引き上げている (既定値のままでは 10MB 上限のアップロードが読み取れない)
 
 ### M5 publish への接続
 
@@ -147,7 +165,7 @@ slug 空間とファイル名空間を混ぜないことで、`slug=shadowed` �
 CARGO_INCREMENTAL=0 cargo test --locked --offline \
   --manifest-path tools/blog-manager/Cargo.toml \
   --target-dir /private/tmp/officeiko-m5-target
-# → 70 passed / 0 failed / 2 ignored
+# → 85 passed / 0 failed / 2 ignored
 
 # 実ストレージへの疎通 (ignored の 2 件。RUSTFS_*/R2_* の実設定が必要)
 cargo test --manifest-path tools/blog-manager/Cargo.toml --test live_storage -- --ignored
@@ -183,6 +201,14 @@ cargo test --locked --offline --manifest-path ../gmb-event-poster/Cargo.toml   #
 - promote_urls: 管理下 key のみ URL を置換 (未管理の R2 URL を触らない)
 - media-preview の key 検証 (パストラバーサル拒否) と存在しない key の 404
 - 「保存してメディアを追加」(formaction) が通常の保存と同じ検査を通ること
+- カバー画像 (`tests/cover_upload.rs`、偽 S3 を 127.0.0.1 に起動して実 PUT/GET を検証)
+  - カバーなし下書きの作成・保存・再編集と、索引で「要修正」にしないこと
+  - 公開時にカバーを要求し、下書きは移動されないこと
+  - multipart でのカバーアップロード (寸法自動取得・RustFS へ実 PUT・manifest 登録)
+  - 公開済み記事のカバー差し替えは即 R2 昇格し、RustFS URL を書かないこと
+  - 下書きカバーは公開時の昇格で R2 URL へ差し替わること
+  - アップロード失敗・画像不正時に既存カバーと本文を維持すること
+  - axum 既定の 2MB 上限でカバー画像が切り捨てられないこと
 - 公開ステートマシン (`tests/publish.rs`): 昇格→移動→git→GMB の遷移、中断からの再開、
   `in_flight` 永続化と unknown 化 (自動再送しない)、git preflight の stage 検査
 - 実ストレージ (`tests/live_storage.rs`): `#[ignore]` の 2 件。実 RustFS/R2 の設定がある環境でのみ実行

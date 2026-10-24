@@ -36,7 +36,7 @@
 </div>
 {% endif %}
 
-<form method="post" action="{{ action }}" class="space-y-4">
+<form method="post" action="{{ action }}" enctype="multipart/form-data" class="space-y-4">
   <input type="hidden" name="expected_revision" value="{{ revision }}" />
 
   <div class="card bg-base-100 shadow">
@@ -84,24 +84,52 @@
 
   <div class="card bg-base-100 shadow">
     <div class="card-body grid grid-cols-1 md:grid-cols-4 gap-4">
-      <h2 class="card-title text-base md:col-span-4">coverImage</h2>
+      <h2 class="card-title text-base md:col-span-4">カバー画像</h2>
+
+      <div class="form-control md:col-span-4">
+        <div class="label"><span class="label-text font-semibold">画像ファイル</span></div>
+        <input class="file-input file-input-bordered w-full" type="file" name="cover_file"
+               accept="image/jpeg,image/png,image/gif,image/webp" />
+        <div class="label">
+          <span class="label-text-alt">
+            選ぶとアップロードされ、寸法（width/height）を自動で読み取ります（jpg/png/gif/webp、10MB まで）。
+            下書きはカバーなしでも保存できますが、<strong>公開にはカバー画像が必要です</strong>。
+          </span>
+        </div>
+      </div>
+
+      {% if !values.cover_url.is_empty() %}
+      <div class="md:col-span-4 flex flex-wrap items-center gap-3">
+        <img src="{{ values.cover_url }}" alt="現在のカバー画像" class="h-20 w-auto rounded border" />
+        <div class="text-xs text-base-content/60">
+          現在のカバー: {{ values.cover_width }}×{{ values.cover_height }}<br />
+          新しい画像を選ぶと差し替わります（旧画像は削除されません）。
+        </div>
+      </div>
+      {% else %}
+      <div class="md:col-span-4 text-sm text-base-content/60">カバー画像は設定されていません。</div>
+      {% endif %}
+
       <label class="form-control md:col-span-4">
-        <div class="label"><span class="label-text font-semibold">URL <span class="text-error">*</span></span></div>
-        <input class="input input-bordered w-full font-mono text-sm" type="url" name="cover_url" value="{{ values.cover_url }}" required />
-        <div class="label"><span class="label-text-alt">http(s) の絶対 URL（Elm 側が相対 URL を受理しないため必須）</span></div>
+        <div class="label"><span class="label-text font-semibold">URL（手動設定）</span></div>
+        <input class="input input-bordered w-full font-mono text-sm" type="url" name="cover_url" value="{{ values.cover_url }}" />
+        <div class="label"><span class="label-text-alt">既存の画像を URL でも指定できます。http(s) の絶対 URL（Elm 側が相対 URL を受理しないため）</span></div>
       </label>
       <label class="form-control">
         <div class="label"><span class="label-text font-semibold">width</span></div>
-        <input class="input input-bordered w-full font-mono" type="number" min="1" name="cover_width" value="{{ values.cover_width }}" required />
+        <input class="input input-bordered w-full font-mono" type="number" min="1" name="cover_width" value="{{ values.cover_width }}" />
       </label>
       <label class="form-control">
         <div class="label"><span class="label-text font-semibold">height</span></div>
-        <input class="input input-bordered w-full font-mono" type="number" min="1" name="cover_height" value="{{ values.cover_height }}" required />
+        <input class="input input-bordered w-full font-mono" type="number" min="1" name="cover_height" value="{{ values.cover_height }}" />
       </label>
       <label class="form-control md:col-span-2">
         <div class="label"><span class="label-text font-semibold">alternativeText</span></div>
         <input class="input input-bordered w-full" type="text" name="cover_alt" value="{{ values.cover_alt }}" />
       </label>
+      <div class="text-xs text-base-content/60 md:col-span-4">
+        カバーを取り消すには URL・width・height・alternativeText をすべて空にしてください（下書きのみ）。
+      </div>
     </div>
   </div>
 

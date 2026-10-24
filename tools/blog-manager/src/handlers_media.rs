@@ -1,14 +1,17 @@
 //! メディアのアップロードとプレビュー中継 (M4)。
 
-use crate::handlers::{self, AppState, PostForm};
+use crate::handlers::{self, AppState, ArticleForm, CoverUpload};
 use crate::media::{
     promote_urls, render_post_image, validate_upload, MediaError, MediaItem, MediaManifest,
+    ValidatedMedia,
 };
+use crate::model::{CoverImage, FrontMatter};
 use crate::repository::{PostFile, Status};
 use askama::Template;
 use axum::extract::{Multipart, Path, State};
 use axum::http::{header, StatusCode};
 use axum::response::{Html, IntoResponse, Redirect, Response};
+use std::collections::BTreeMap;
 
 // ---------------------------------------------------------------------------
 // 「保存してメディアを追加」(編集フォームから formaction で来る)
@@ -22,9 +25,9 @@ use axum::response::{Html, IntoResponse, Redirect, Response};
 pub async fn save_and_open_upload(
     State(state): State<AppState>,
     Path(slug): Path<String>,
-    form: axum::Form<PostForm>,
+    article: ArticleForm,
 ) -> Response {
-    handlers::save_article(&state, &slug, form.0, |slug| {
+    handlers::save_article(&state, &slug, article, |slug| {
         Redirect::to(&format!("/posts/{slug}/media/new")).into_response()
     })
     .await
@@ -283,10 +286,18 @@ pub async fn upload(
     // 4) 記事へ反映
     let mut body = post.body.clone();
     if form.target == TARGET_COVER {
-        front_matter.cover_image.url = article_url.clone();
-        front_matter.cover_image.width = media.width;
-        front_matter.cover_image.height = media.height;
-        front_matter.cover_image.alternative_text = Some(form.alt.clone());
+        // カバー未設定の下書きに初めて画像を付けるときはここで作る。
+        let cover = front_matter.cover_image.get_or_insert_with(|| CoverImage {
+            url: String::new(),
+            width: 0,
+            height: 0,
+            alternative_text: None,
+            extra: BTreeMap::new(),
+        });
+        cover.url = article_url.clone();
+        cover.width = media.width;
+        cover.height = media.height;
+        cover.alternative_text = Some(form.alt.clone());
     } else {
         body.push_str(&render_post_image(
             &article_url,
@@ -339,6 +350,93 @@ async fn promote_object(state: &AppState, key: &str, content_type: &str) -> Resu
         .put(key, bytes, content_type)
         .await
         .map_err(|err| err.to_string())
+}
+
+/// フォーム送信で送られてきたカバー画像を検証・保存し、frontmatter のカバーを差し替える。
+///
+/// 下書きは RustFS URL、公開済み記事は R2 URL を書き込む (公開済み記事に RustFS URL を
+/// 書かない規則は §2.6.1)。旧カバーのオブジェクトは削除しない (孤児オブジェクトは許容)。
+/// 失敗時は呼び出し側が frontmatter を捨てて再表示するため、既存カバーは残る。
+pub(crate) async fn apply_cover_upload(
+    state: &AppState,
+    front_matter: &mut FrontMatter,
+    published: bool,
+    alt: &str,
+    upload: &CoverUpload,
+) -> Result<(), String> {
+    // key は slug に依存する。slug は呼び出し側 (to_front_matter) で検証済み。
+    let media = validate_upload(
+        &front_matter.slug,
+        &upload.file_name,
+        upload.bytes.clone(),
+        &upload.content_type,
+    )
+    .map_err(|err| format!("カバー画像が不正です: {err}"))?;
+
+    state
+        .rustfs
+        .put(&media.key, upload.bytes.clone(), &media.content_type)
+        .await
+        .map_err(|err| format!("カバー画像の保存に失敗しました: {err}"))?;
+
+    let mut promoted = false;
+    if published {
+        // 昇格に失敗したら保存そのものを中止する (RustFS URL を公開記事に書かない)。
+        promote_object(state, &media.key, &media.content_type)
+            .await
+            .map_err(|err| format!("カバー画像の公開に失敗したため保存を中止しました: {err}"))?;
+        promoted = true;
+    }
+
+    let url = if promoted {
+        state.r2.public_url(&media.key)
+    } else {
+        state.rustfs.public_url(&media.key)
+    };
+
+    let cover = front_matter.cover_image.get_or_insert_with(|| CoverImage {
+        url: String::new(),
+        width: 0,
+        height: 0,
+        alternative_text: None,
+        extra: BTreeMap::new(),
+    });
+    cover.url = url;
+    cover.width = media.width;
+    cover.height = media.height;
+    let alt = alt.trim();
+    if !alt.is_empty() {
+        cover.alternative_text = Some(alt.to_string());
+    }
+
+    // manifest へ登録 (公開時の R2 昇格が key を辿れるようにする)
+    register_cover_media(state, &front_matter.slug, &media, promoted, alt)
+}
+
+fn register_cover_media(
+    state: &AppState,
+    slug: &str,
+    media: &ValidatedMedia,
+    promoted: bool,
+    alt: &str,
+) -> Result<(), String> {
+    let now = chrono::Utc::now().to_rfc3339();
+    let mut manifest = MediaManifest::load(&state.media_dir, slug);
+    if !manifest.items.iter().any(|item| item.key == media.key) {
+        manifest.items.push(MediaItem {
+            key: media.key.clone(),
+            content_type: media.content_type.clone(),
+            width: media.width,
+            height: media.height,
+            alt: alt.to_string(),
+            created_at: now.clone(),
+            promoted,
+            promoted_at: promoted.then(|| now.clone()),
+        });
+    }
+    manifest
+        .save(&state.media_dir)
+        .map_err(|err| format!("manifest の保存に失敗しました: {err}"))
 }
 
 async fn upload_error_page(state: &AppState, slug: &str, error: String) -> Response {

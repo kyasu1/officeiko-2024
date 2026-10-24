@@ -14,7 +14,7 @@ M1〜M6の実装・ローカル検証済み。実GMBはSTANDARD投稿・表示�
 - 公開状態は `state/publish/<slug>.json`。同一プロセスの全書込みをグローバルwrite lockで直列化。
 - メディア画面への遷移は編集内容を記事へ保存してから行う。独立したedit-sessionの実装はない。
 - canonical / CTA は `https://officeiko.co.jp`。
-- カバー改善は下記 §2.4.2 の合意方針で、実装はこれから。本文全体のプレビューも未実装。
+- カバー画像アップロードは下記 §2.4.2 の方針で**実装済み** (2026-10-24)。本文全体のプレビューは未実装。
 
 ## 0. 確定事項
 
@@ -200,7 +200,7 @@ officeiko-2024/tools/blog-manager/
 `edit_session_id` (uuid) を持たせて分離し、id 不一致時は「他のセッションが編集中」として
 明示的に拒否する** (codex 第2回残り 反映)。
 
-### 2.4.2 カバー画像アップロード改善 (合意済み・未実装)
+### 2.4.2 カバー画像アップロード改善 (実装済み: 2026-10-24)
 
 2026-10-24のユーザー合意。新規作成時から記事ごとに画像をアップロードし、寸法を自動取得、
 画像を確認・差し替えできるようにする。URL手入力は既存画像利用の補助として残す。
@@ -212,6 +212,30 @@ officeiko-2024/tools/blog-manager/
 改善では下書き保存・読み込みと公開の検証を分離し、この循環を解消する必要がある。
 詳細と受入条件: [カバー画像設計](superpowers/specs/2026-10-24-cover-image-design.md)。
 M6から独立した次の実装として扱い、この記事全体のプレビュー実装は含めない。
+
+#### 実装記録 (pi, 2026-10-24)
+
+- `FrontMatter.cover_image` を `Option<CoverImage>` に変更。未設定は `coverImage` キー自体を書かない
+  (`skip_serializing_if`)。仮の URL で埋めない。
+- 検証を分離した。`validate()` は下書き用 (カバーは設定時のみ検証)、`validate_for_publish()` は
+  公開用でカバーを必須とする。後者は `publish::run` が revision 検証の直後・ファイル移動の前に適用し、
+  索引はカバーなし下書きを「要修正」にしない。既存8記事の `coverImage` デコーダ要件は変わらない。
+- 作成・編集フォームは `enctype="multipart/form-data"`。`handlers::ArticleForm` エクストラクタが
+  multipart (`cover_file`) と urlencoded の両方を受け付け、curl・既存テストとの互換を保つ。
+- アップロードは `handlers_media::apply_cover_upload`:
+  `validate_upload` (mime・10MB・`image` crate で寸法検出) → RustFS へ PUT → 公開済み記事は即 R2 昇格
+  → frontmatter へ URL/width/height/alternativeText を記録 → manifest 登録。
+  下書きは RustFS URL を書き、公開時に §2.5 step 0 の昇格で R2 URL へ差し替わる。
+- 画像不正・ストレージ障害・R2昇格失敗はいずれも**保存を中止**し、既存カバーと本文をそのまま残す。
+  旧カバーのオブジェクトは削除しない (孤児オブジェクトは許容)。
+- URL がないのに width/height/alt だけが入力は「取り消し忘れ」としてエラーにし、入力を捨てない。
+  カバー解除は 4 項目をすべて空にする (下書きのみ可、公開時はエラー)。
+- multipart を受け付ける 4 ルートでボディ上限を `MAX_UPLOAD_BYTES` (10MB) へ引き上げた。
+  axum 既定の 2MB のままでは、10MB 上限のはずのアップロードが読み取れていなかった (M4 の潜在不具合)。
+- テスト: `tools/blog-manager/tests/cover_upload.rs` (11件)。127.0.0.1 にメモリ保存の偽 S3 を起動し、
+  実 PUT/GET・公開時の R2 昇格まで検証する (ネットワーク不要・`--offline` で動く)。
+- 未実装: 本文全体のプレビュー (§2.4.1)。フォームのカバー表示は記事へ書き込む URL を直接表示している
+  (メディア一覧の `/media-preview` 中継は既存どおり)。
 
 ### 2.5 公開フロー (`POST /posts/:slug/publish`) — ステートマシン化
 **state モデル (codex 第2回 P1 反映)** — `tools/blog-manager/state/` 配下:

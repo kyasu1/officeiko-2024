@@ -2,7 +2,7 @@ use crate::model::{merge_tags_input, tags_to_input, Category, CoverImage, FrontM
 use crate::repository::{PostFile, RepoError, Repository, Status};
 use crate::storage::StorageBackend;
 use askama::Template;
-use axum::extract::{Path, State};
+use axum::extract::{FromRequest, Multipart, Path, Request, State};
 use axum::http::{header, StatusCode};
 use axum::response::{Html, IntoResponse, Redirect, Response};
 use axum::Form;
@@ -250,10 +250,26 @@ fn render_detail(post: PostFile, flash: &str) -> Response {
             status_label: post.status.label(),
             status_class: status_class(post.status),
             url_path: fm.url_path(),
-            cover_url: fm.cover_image.url.clone(),
-            cover_width: fm.cover_image.width,
-            cover_height: fm.cover_image.height,
-            cover_alt: fm.cover_image.alternative_text.clone().unwrap_or_default(),
+            cover_url: fm
+                .cover_image
+                .as_ref()
+                .map(|cover| cover.url.clone())
+                .unwrap_or_default(),
+            cover_width: fm
+                .cover_image
+                .as_ref()
+                .map(|cover| cover.width)
+                .unwrap_or(0),
+            cover_height: fm
+                .cover_image
+                .as_ref()
+                .map(|cover| cover.height)
+                .unwrap_or(0),
+            cover_alt: fm
+                .cover_image
+                .as_ref()
+                .and_then(|cover| cover.alternative_text.clone())
+                .unwrap_or_default(),
             tags: fm
                 .tags
                 .iter()
@@ -338,19 +354,22 @@ struct FormValues {
 
 impl FormValues {
     fn from_front_matter(front_matter: &FrontMatter, body: &str) -> Self {
+        let cover = front_matter.cover_image.as_ref();
         Self {
             title: front_matter.title.clone(),
             slug: front_matter.slug.clone(),
             category: front_matter.category.as_str().to_string(),
             published_on: front_matter.published_on.clone(),
             author: front_matter.author.clone().unwrap_or_default(),
-            cover_url: front_matter.cover_image.url.clone(),
-            cover_width: front_matter.cover_image.width.to_string(),
-            cover_height: front_matter.cover_image.height.to_string(),
-            cover_alt: front_matter
-                .cover_image
-                .alternative_text
-                .clone()
+            cover_url: cover.map(|cover| cover.url.clone()).unwrap_or_default(),
+            cover_width: cover
+                .map(|cover| cover.width.to_string())
+                .unwrap_or_default(),
+            cover_height: cover
+                .map(|cover| cover.height.to_string())
+                .unwrap_or_default(),
+            cover_alt: cover
+                .and_then(|cover| cover.alternative_text.clone())
                 .unwrap_or_default(),
             tags: tags_to_input(&front_matter.tags),
             body: body.to_string(),
@@ -406,7 +425,11 @@ impl PostForm {
     }
 
     /// フォーム入力を検証して frontmatter に変換する。
-    fn to_front_matter(&self, base: FrontMatter) -> Result<FrontMatter, Vec<String>> {
+    fn to_front_matter(
+        &self,
+        base: FrontMatter,
+        has_cover_upload: bool,
+    ) -> Result<FrontMatter, Vec<String>> {
         let mut errors = Vec::new();
 
         let category = match self.category.trim() {
@@ -420,23 +443,44 @@ impl PostForm {
             }
         };
 
-        let cover_width = parse_dimension(&self.cover_width, "coverImage.width", &mut errors);
-        let cover_height = parse_dimension(&self.cover_height, "coverImage.height", &mut errors);
+        // カバーは下書きでは任意。URL が空ならカバーなし。
+        // URL がないのに幅・高さ・alt だけ入力した場合は取り消し忘れとしてエラーにし、
+        // 入力を黙って捨てない。
+        let cover_url = self.cover_url.trim().to_string();
+        let cover_aux_given = !self.cover_width.trim().is_empty()
+            || !self.cover_height.trim().is_empty()
+            || !self.cover_alt.trim().is_empty();
+        let cover_image = if cover_url.is_empty() {
+            if cover_aux_given && !has_cover_upload {
+                errors.push(
+                    "カバー画像を設定する場合は URL を入力してください。取り消す場合は URL・幅・高さ・alt をすべて空にしてください"
+                        .to_string(),
+                );
+            }
+            None
+        } else {
+            let cover_width = parse_dimension(&self.cover_width, "coverImage.width", &mut errors);
+            let cover_height =
+                parse_dimension(&self.cover_height, "coverImage.height", &mut errors);
+            Some(CoverImage {
+                url: cover_url,
+                width: cover_width,
+                height: cover_height,
+                // Elm のデコーダが要求するため、未設定でも空文字で出す
+                alternative_text: Some(self.cover_alt.trim().to_string()),
+                extra: base
+                    .cover_image
+                    .as_ref()
+                    .map(|cover| cover.extra.clone())
+                    .unwrap_or_default(),
+            })
+        };
 
         let tags = match merge_tags_input(&self.tags, &base.tags) {
             Ok(tags) => tags,
             Err(error) => {
                 errors.push(error);
                 base.tags.clone()
-            }
-        };
-
-        let alternative_text = {
-            let value = self.cover_alt.trim();
-            if value.is_empty() {
-                Some(String::new())
-            } else {
-                Some(value.to_string())
             }
         };
 
@@ -454,13 +498,7 @@ impl PostForm {
             published_on: self.published_on.trim().to_string(),
             category,
             tags,
-            cover_image: CoverImage {
-                url: self.cover_url.trim().to_string(),
-                width: cover_width,
-                height: cover_height,
-                alternative_text,
-                extra: base.cover_image.extra.clone(),
-            },
+            cover_image,
             extra: base.extra.clone(),
         };
 
@@ -512,16 +550,117 @@ fn form_template_new(values: FormValues, errors: Vec<String>) -> FormTemplate {
     }
 }
 
-pub async fn create(State(state): State<AppState>, Form(form): Form<PostForm>) -> Response {
+/// multipart で送られてきたカバー画像 (`cover_file` フィールド)。
+pub struct CoverUpload {
+    pub file_name: String,
+    pub content_type: String,
+    pub bytes: Vec<u8>,
+}
+
+/// 記事フォーム + 任意のカバー画像。
+///
+/// form.html は `enctype="multipart/form-data"` のため、画像を付けなくても
+/// multipart で届く。curl やテストからの urlencoded 送信も受け付ける
+/// (その場合カバーは None)。
+pub struct ArticleForm {
+    pub post: PostForm,
+    pub cover: Option<CoverUpload>,
+}
+
+fn bad_request(message: String) -> Response {
+    (StatusCode::BAD_REQUEST, message).into_response()
+}
+
+impl<S> FromRequest<S> for ArticleForm
+where
+    S: Send + Sync,
+{
+    type Rejection = Response;
+
+    async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
+        let is_multipart = req
+            .headers()
+            .get(header::CONTENT_TYPE)
+            .and_then(|value| value.to_str().ok())
+            .is_some_and(|value| value.starts_with("multipart/"));
+
+        if !is_multipart {
+            let form = Form::<PostForm>::from_request(req, state)
+                .await
+                .map_err(|err| bad_request(format!("フォームを読み取れません: {err}")))?;
+            return Ok(ArticleForm {
+                post: form.0,
+                cover: None,
+            });
+        }
+
+        let mut multipart = Multipart::from_request(req, state)
+            .await
+            .map_err(|err| bad_request(format!("multipart を読み取れません: {err}")))?;
+        let mut fields = serde_json::Map::new();
+        let mut cover = None;
+        while let Some(field) = multipart
+            .next_field()
+            .await
+            .map_err(|err| bad_request(format!("multipart が不正です: {err}")))?
+        {
+            let name = field.name().unwrap_or_default().to_string();
+            let file_name = field.file_name().unwrap_or_default().to_string();
+            if name == "cover_file" && !file_name.is_empty() {
+                let content_type = field
+                    .content_type()
+                    .unwrap_or("application/octet-stream")
+                    .to_string();
+                let bytes = field.bytes().await.map_err(|err| {
+                    bad_request(format!("カバー画像の読み取りに失敗しました: {err}"))
+                })?;
+                cover = Some(CoverUpload {
+                    file_name,
+                    content_type,
+                    bytes: bytes.to_vec(),
+                });
+            } else if !name.is_empty() {
+                let value = field
+                    .text()
+                    .await
+                    .map_err(|err| bad_request(format!("フォームの値が読み取れません: {err}")))?;
+                fields.insert(name, serde_json::Value::String(value));
+            }
+        }
+
+        let post = serde_json::from_value(serde_json::Value::Object(fields))
+            .map_err(|err| bad_request(format!("フォームの値が不正です: {err}")))?;
+        Ok(ArticleForm { post, cover })
+    }
+}
+
+pub async fn create(State(state): State<AppState>, article: ArticleForm) -> Response {
     let _guard = state.write_lock.lock().await;
+    let form = article.post;
 
     let base = FrontMatter::new_draft(form.published_on.clone());
-    let front_matter = match form.to_front_matter(base) {
+    let mut front_matter = match form.to_front_matter(base, article.cover.is_some()) {
         Ok(front_matter) => front_matter,
         Err(errors) => {
             return render_template(form_template_new(form.values(), errors));
         }
     };
+
+    // カバー画像は保存前に RustFS へ置く (slug は検証済み)。
+    // 失敗してもフォームの入力はそのまま再表示する。
+    if let Some(cover) = article.cover.as_ref() {
+        if let Err(error) = crate::handlers_media::apply_cover_upload(
+            &state,
+            &mut front_matter,
+            false,
+            &form.cover_alt,
+            cover,
+        )
+        .await
+        {
+            return render_template(form_template_new(form.values(), vec![error]));
+        }
+    }
 
     match state.repo.create(&front_matter, &form.body) {
         Ok(_) => Redirect::to("/?flash=created").into_response(),
@@ -560,9 +699,9 @@ pub async fn edit_form(State(state): State<AppState>, Path(slug): Path<String>) 
 pub async fn update(
     State(state): State<AppState>,
     Path(slug): Path<String>,
-    Form(form): Form<PostForm>,
+    article: ArticleForm,
 ) -> Response {
-    save_article(&state, &slug, form, |saved_slug| {
+    save_article(&state, &slug, article, |saved_slug| {
         let target = state
             .repo
             .find(saved_slug)
@@ -580,10 +719,11 @@ pub async fn update(
 pub async fn save_article(
     state: &AppState,
     slug: &str,
-    form: PostForm,
+    article: ArticleForm,
     on_success: impl Fn(&str) -> Response,
 ) -> Response {
     let _guard = state.write_lock.lock().await;
+    let form = article.post;
 
     let Some(post) = state.repo.find(slug) else {
         return not_found(&format!("slug: {slug}"));
@@ -598,7 +738,7 @@ pub async fn save_article(
             return render_template(form_template_error(post, form, vec![error], false));
         }
     }
-    let front_matter = match form.to_front_matter(current.clone()) {
+    let mut front_matter = match form.to_front_matter(current.clone(), article.cover.is_some()) {
         Ok(front_matter) => front_matter,
         Err(errors) => {
             // 入力エラー時は **フォームが持ってきた revision を維持**する。
@@ -606,6 +746,22 @@ pub async fn save_article(
             return render_template(form_template_error(post, form, errors, false));
         }
     };
+
+    // カバー画像は保存前に置く (公開済みなら R2 まで昇格し、RustFS URL を書かない)。
+    // 失敗時は既存カバーと入力をそのまま再表示する。
+    if let Some(cover) = article.cover.as_ref() {
+        if let Err(error) = crate::handlers_media::apply_cover_upload(
+            state,
+            &mut front_matter,
+            post.status == Status::Published,
+            &form.cover_alt,
+            cover,
+        )
+        .await
+        {
+            return render_template(form_template_error(post, form, vec![error], false));
+        }
+    }
 
     let updated = PostFile {
         front_matter: Some(front_matter),

@@ -141,6 +141,14 @@ pub async fn run(
     if post.has_errors() {
         return Err(post.error_summary());
     }
+    // 公開時のみ要求する項目 (カバー画像)。下書きはカバーなしで保存できるため
+    // 索引側の validate() では検出されない。仮の URL で回避しない。
+    if let Some(front_matter) = post.front_matter.as_ref() {
+        let publish_errors = front_matter.validate_for_publish();
+        if !publish_errors.is_empty() {
+            return Err(publish_errors.join(" / "));
+        }
+    }
     let prior = PublishRecord::recover(&dir, slug)?;
     let mut record = match prior {
         Some(r)
@@ -215,7 +223,8 @@ pub async fn run(
    if record.gmb==GmbStatus::Unknown && !options.retry_unknown {return Err("GMB の前回結果が不明です。管理画面で未投稿を確認し、明示的な再試行を選択してください".into());}
    let current=state.repo.find(slug).ok_or("公開済み記事が見つかりません")?;
    let fm=current.front_matter.as_ref().ok_or("frontmatterがありません")?;
-   if fm.cover_image.url.starts_with(&state.rustfs.public_url("")) {return Err("カバー画像が未公開です".into());}
+   let cover_promoted=fm.cover_image.as_ref().map(|cover| !cover.url.starts_with(&state.rustfs.public_url(""))).unwrap_or(false);
+   if !cover_promoted {return Err("カバー画像が未公開です".into());}
    let payload=crate::gmb::build_post(fm,&current.body)?;
    record.gmb=GmbStatus::InFlight;record.save(&dir)?;
    // Cancellation or process termination leaves durable in_flight; load() recovers as unknown.

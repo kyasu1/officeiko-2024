@@ -83,7 +83,10 @@ impl MediaManifest {
             .filter(|item| {
                 bases.iter().any(|base| {
                     let url = format!("{}/{}", base.trim_end_matches('/'), item.key);
-                    fm.cover_image.url == url || urls.iter().any(|(_, value)| value == &url)
+                    fm.cover_image
+                        .as_ref()
+                        .is_some_and(|cover| cover.url == url)
+                        || urls.iter().any(|(_, value)| value == &url)
                 })
             })
             .map(|item| item.key.clone())
@@ -116,7 +119,10 @@ impl MediaManifest {
         self.items
             .iter()
             .filter(|item| {
-                front_matter.cover_image.url.ends_with(&item.key)
+                front_matter
+                    .cover_image
+                    .as_ref()
+                    .is_some_and(|cover| cover.url.ends_with(&item.key))
                     || body_contains_key(body, &item.key)
             })
             .map(|item| item.key.clone())
@@ -282,8 +288,10 @@ pub fn promote_urls(
     for key in keys {
         let from = format!("{}/{}", rustfs_base.trim_end_matches('/'), key);
         let to = format!("{}/{}", r2_base.trim_end_matches('/'), key);
-        if front_matter.cover_image.url == from {
-            front_matter.cover_image.url = to.clone();
+        if let Some(cover) = front_matter.cover_image.as_mut() {
+            if cover.url == from {
+                cover.url = to.clone();
+            }
         }
     }
     new_body
@@ -339,13 +347,13 @@ mod tests {
             published_on: "2026-01-01".to_string(),
             category: Category::Blog,
             tags: vec![Tag::default()],
-            cover_image: CoverImage {
+            cover_image: Some(CoverImage {
                 url: url.to_string(),
                 width: 10,
                 height: 10,
                 alternative_text: Some(String::new()),
                 extra: BTreeMap::new(),
-            },
+            }),
             extra: BTreeMap::new(),
         }
     }
@@ -424,7 +432,7 @@ mod tests {
         let new_body = promote_urls(&mut front_matter, &body, rustfs, r2, &[managed.to_string()]);
 
         assert_eq!(
-            front_matter.cover_image.url,
+            front_matter.cover_image.as_ref().unwrap().url,
             "https://image.officeiko.work/blog/s/managed-1.jpg"
         );
         assert!(new_body.contains("https://image.officeiko.work/blog/s/managed-1.jpg"));
@@ -434,6 +442,44 @@ mod tests {
         );
         // 未管理の R2 URL はそのまま
         assert!(new_body.contains("https://image.officeiko.work/other.jpg"));
+    }
+
+    #[test]
+    fn promote_and_reference_checks_tolerate_a_missing_cover() {
+        let rustfs = "https://rustfs.mf.officeiko.co.jp/blog";
+        let r2 = "https://image.officeiko.work";
+        let managed = "blog/s/managed-1.jpg";
+
+        let mut front_matter = front_matter_with_cover("");
+        front_matter.cover_image = None;
+        let body =
+            format!("<post-image url=\"{rustfs}/{managed}\" width=\"1\" height=\"1\" alt=\"a\">");
+
+        let manifest = MediaManifest {
+            slug: "s".to_string(),
+            items: vec![MediaItem {
+                key: managed.to_string(),
+                content_type: "image/jpeg".to_string(),
+                width: 1,
+                height: 1,
+                alt: String::new(),
+                created_at: String::new(),
+                promoted: false,
+                promoted_at: None,
+            }],
+        };
+        // カバーなしでも本文参照だけで key を拾う (panic しない)
+        assert_eq!(
+            manifest.referenced_keys(&front_matter, &body),
+            vec![managed.to_string()]
+        );
+
+        let new_body = promote_urls(&mut front_matter, &body, rustfs, r2, &[managed.to_string()]);
+        assert!(
+            front_matter.cover_image.is_none(),
+            "カバーなしの記事に勝手にカバーを作らない"
+        );
+        assert!(new_body.contains("https://image.officeiko.work/blog/s/managed-1.jpg"));
     }
 
     #[test]

@@ -67,8 +67,9 @@ M6では既存の応答型を変更せず保持した (M5からの継続)。
 
 - **記事全体のプレビュー未実装**。編集は実装済みだが、本番表示と同じレンダリングのプレビュー画面はない
   (画像中継 `GET /media-preview/{*key}` のみ)。
-- **`coverImage` 入力のUX改善** 未着手。
+- **`coverImage` 入力のUX改善** は M6 では未着手。
   どちらも既存M6の範囲外のため、今回黙って追加はしていない。
+  (→ M6後に別スライスとして実装済み。下記「カバー画像アップロード実装」を参照)
 - **外部副作用を伴う受入が未実施**: 実RustFS/R2への昇格 (`tests/live_storage.rs` の ignored 2件)、
   管理UI→公開→git→Netlify→GMB の全経路E2E、実メディア昇格。
 - 実GMBでは 2026-10-24 にユーザー許可のもと STANDARD 投稿1件で API 疎通と表示を確認済み
@@ -93,3 +94,17 @@ READMEのテストコマンドをリポジトリ直下から実行できる形�
 カバー画像について、ユーザーが「新規作成・編集時のアップロード、寸法自動取得、画像確認・
 差し替え、カバーなし下書き保存可・公開時必須」の方針に合意。
 設計は `docs/superpowers/specs/2026-10-24-cover-image-design.md`。実装は未着手でM6に含めない。
+
+## カバー画像アップロード実装 (2026-10-24, pi)
+
+M6とは独立のスライスとして実装した。設計は上記 spec、計画は §2.4.2。
+
+- `cover_image` を `Option<CoverImage>` にし、未設定は `coverImage` キーを書かない
+- 下書き検証 `validate()` と公開検証 `validate_for_publish()` を分離 (公開のみカバー必須)
+- 作成・編集フォームを multipart 化 (`cover_file`)。`ArticleForm` が urlencoded も受理
+- `handlers_media::apply_cover_upload` で検証→RustFS PUT→(公開済みは R2 昇格)→frontmatter 記録→
+  manifest 登録。失敗時は保存を中止し既存カバー・本文を維持
+- multipart ルート 4 本のボディ上限を 10MB へ (axum 既定 2MB でアップロード不可だった)
+- テスト `tools/blog-manager/tests/cover_upload.rs` 11件 (偽 S3 で実 PUT/GET・昇格まで)
+- 実行 gates: アプリ 85 passed / 0 failed / 2 ignored、fmt・clippy `-D warnings` 通過
+- 実 RustFS/R2・Netlify・GMB への外部副作用は**実行していない**
