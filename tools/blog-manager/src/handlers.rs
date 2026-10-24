@@ -22,6 +22,7 @@ pub struct AppState {
     pub rustfs: StorageBackend,
     /// 公開メディアの置き場所 (R2)
     pub r2: StorageBackend,
+    pub gmb: Arc<dyn crate::gmb::GmbPublisher>,
 }
 
 /// askama テンプレートの `render()` を HTTP レスポンスにする。
@@ -52,6 +53,7 @@ struct ListTemplate {
     draft_count: usize,
     broken_count: usize,
     flash: String,
+    pending_changes: Vec<crate::publish::PublishRecord>,
 }
 
 pub struct PostRow {
@@ -140,6 +142,7 @@ pub async fn list(
         draft_count,
         broken_count,
         flash: flash_message(&query.flash).to_string(),
+        pending_changes: crate::publish::pending_changes(&state),
     })
 }
 
@@ -381,6 +384,8 @@ pub struct PostForm {
     pub body: String,
     #[serde(default)]
     pub expected_revision: String,
+    #[serde(default)]
+    pub git: Option<String>,
 }
 
 impl PostForm {
@@ -587,6 +592,12 @@ pub async fn save_article(
         return not_found("frontmatter を解析できないため編集できません");
     };
 
+    if form.git.is_some() && post.status == Status::Published {
+        let record = crate::publish::PublishRecord::new(slug, &post.file_name, &post.revision);
+        if let Err(error) = crate::publish::git_preflight(state, &record).await {
+            return render_template(form_template_error(post, form, vec![error], false));
+        }
+    }
     let front_matter = match form.to_front_matter(current.clone()) {
         Ok(front_matter) => front_matter,
         Err(errors) => {
@@ -602,9 +613,31 @@ pub async fn save_article(
         ..post.clone()
     };
 
+    let change = if form.git.is_some() && post.status == Status::Published {
+        if form.expected_revision.is_empty() || form.expected_revision != post.revision {
+            return render_template(form_template_error(
+                post,
+                form,
+                vec!["revisionが一致しません".into()],
+                true,
+            ));
+        }
+        match crate::publish::prepare_change(state, &post, Some(&updated)) {
+            Ok(r) => Some(r),
+            Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
+        }
+    } else {
+        None
+    };
     match state.repo.save(&updated, &form.expected_revision) {
         Ok(()) => {
             let saved_slug = updated.slug().unwrap_or(slug).to_string();
+            if let Some(record) = change {
+                return match crate::publish::sync_change(state, record).await {
+                    Ok(r) => crate::handlers_publish::git_result(r),
+                    Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
+                };
+            }
             on_success(&saved_slug)
         }
         Err(err) => {
@@ -691,9 +724,32 @@ pub async fn delete(
         return not_found(&format!("slug: {slug}"));
     };
 
+    if form.git.is_some() && post.status == Status::Published {
+        let record = crate::publish::PublishRecord::new(&slug, &post.file_name, &post.revision);
+        if let Err(error) = crate::publish::git_preflight(&state, &record).await {
+            return (StatusCode::BAD_REQUEST, error).into_response();
+        }
+    }
+    let change = if form.git.is_some() && post.status == Status::Published {
+        if form.expected_revision.is_empty() || form.expected_revision != post.revision {
+            return (StatusCode::BAD_REQUEST, "revisionが一致しません").into_response();
+        }
+        match crate::publish::prepare_change(&state, &post, None) {
+            Ok(r) => Some(r),
+            Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
+        }
+    } else {
+        None
+    };
     match state.repo.delete(&post, &form.expected_revision) {
         Ok(trash_path) => {
             tracing::info!(path = %trash_path.display(), "moved article to trash");
+            if let Some(record) = change {
+                return match crate::publish::sync_change(&state, record).await {
+                    Ok(r) => crate::handlers_publish::git_result(r),
+                    Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
+                };
+            }
             Redirect::to("/?flash=deleted").into_response()
         }
         Err(err) => (

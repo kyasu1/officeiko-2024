@@ -10,7 +10,16 @@ use tower_http::trace::TraceLayer;
 /// ルーターを組み立てる (テストからも同じ構成を使う)。
 pub fn router(state: AppState, static_dir: PathBuf) -> Router {
     Router::new()
+        .route(
+            "/git/{id}/{slug}",
+            get(crate::handlers_publish::inspect_git).post(crate::handlers_publish::retry_git),
+        )
         .route("/", get(handlers::list))
+        .route(
+            "/posts/{slug}/publish",
+            get(crate::handlers_publish::form).post(crate::handlers_publish::publish),
+        )
+        .route("/posts/{slug}/gmb", post(crate::handlers_publish::gmb))
         .route("/posts/new", get(handlers::new_form))
         .route("/posts", post(handlers::create))
         .route("/posts/{slug}", get(handlers::detail_with_flash))

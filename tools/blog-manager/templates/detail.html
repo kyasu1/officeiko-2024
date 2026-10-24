@@ -5,6 +5,7 @@
   <a class="btn btn-ghost btn-sm" href="/">← 一覧へ戻る</a>
   {% if editable %}
   <div class="flex gap-2">
+    <a class="btn btn-sm btn-primary" href="{{ edit_path.trim_end_matches("/edit") }}/publish">公開・GMB</a>
     <a class="btn btn-sm btn-outline" href="{{ edit_path }}">編集</a>
     <a class="btn btn-sm btn-error btn-outline" href="{{ delete_path }}">削除</a>
   </div>

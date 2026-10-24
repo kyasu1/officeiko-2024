@@ -58,6 +58,37 @@ impl MediaManifest {
         }
     }
 
+    pub fn try_load(dir: &Path, slug: &str) -> Result<Self, String> {
+        let path = manifest_path(dir, slug);
+        match fs::read_to_string(path) {
+            Ok(raw) => {
+                let manifest: Self = serde_json::from_str(&raw)
+                    .map_err(|e| format!("メディアmanifestを読み込めません: {e}"))?;
+                if manifest.slug != slug {
+                    return Err("メディアmanifestのslugが一致しません".into());
+                }
+                Ok(manifest)
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Self {
+                slug: slug.into(),
+                items: Vec::new(),
+            }),
+            Err(e) => Err(e.to_string()),
+        }
+    }
+    pub fn referenced_keys_at(&self, fm: &FrontMatter, body: &str, bases: &[&str]) -> Vec<String> {
+        let urls = image_urls(body);
+        self.items
+            .iter()
+            .filter(|item| {
+                bases.iter().any(|base| {
+                    let url = format!("{}/{}", base.trim_end_matches('/'), item.key);
+                    fm.cover_image.url == url || urls.iter().any(|(_, value)| value == &url)
+                })
+            })
+            .map(|item| item.key.clone())
+            .collect()
+    }
     pub fn save(&self, dir: &Path) -> std::io::Result<()> {
         fs::create_dir_all(dir)?;
         let path = manifest_path(dir, &self.slug);
@@ -231,16 +262,67 @@ pub fn promote_urls(
     r2_base: &str,
     keys: &[String],
 ) -> String {
+    let mut replacements = Vec::new();
+    for (range, value) in image_urls(body) {
+        for key in keys {
+            let from = format!("{}/{}", rustfs_base.trim_end_matches('/'), key);
+            if value == from {
+                replacements.push((
+                    range.clone(),
+                    format!("{}/{}", r2_base.trim_end_matches('/'), key),
+                ));
+            }
+        }
+    }
     let mut new_body = body.to_string();
+    replacements.sort_by_key(|(range, _)| std::cmp::Reverse(range.start));
+    for (range, value) in replacements {
+        new_body.replace_range(range, &value);
+    }
     for key in keys {
         let from = format!("{}/{}", rustfs_base.trim_end_matches('/'), key);
         let to = format!("{}/{}", r2_base.trim_end_matches('/'), key);
         if front_matter.cover_image.url == from {
             front_matter.cover_image.url = to.clone();
         }
-        new_body = new_body.replace(&from, &to);
     }
     new_body
+}
+
+/// Destination spans only: never replace text, code, or a URL sharing a prefix.
+fn image_urls(body: &str) -> Vec<(std::ops::Range<usize>, String)> {
+    use pulldown_cmark::{Event, Tag};
+    let mut urls = Vec::new();
+    let html =
+        regex::Regex::new(r#"(?s)<post-image\b[^>]*?\burl\s*=\s*(?:"([^"]*)"|'([^']*)')"#).unwrap();
+    for (event, range) in pulldown_cmark::Parser::new(body).into_offset_iter() {
+        match event {
+            Event::Start(Tag::Image { dest_url, .. }) => {
+                let source = &body[range.clone()];
+                if let Some(start) = source
+                    .find("](")
+                    .and_then(|i| source[i + 2..].find(dest_url.as_ref()).map(|n| i + 2 + n))
+                {
+                    urls.push((
+                        range.start + start..range.start + start + dest_url.len(),
+                        dest_url.to_string(),
+                    ));
+                }
+            }
+            Event::Html(_) | Event::InlineHtml(_) => {
+                for captures in html.captures_iter(&body[range.clone()]) {
+                    if let Some(value) = captures.get(1).or_else(|| captures.get(2)) {
+                        urls.push((
+                            range.start + value.start()..range.start + value.end(),
+                            value.as_str().into(),
+                        ));
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    urls
 }
 
 #[cfg(test)]

@@ -133,7 +133,7 @@ slug 空間とファイル名空間を混ぜないことで、`slug=shadowed` �
   上書きしない（タイムスタンプ + pid + 連番 + status + ファイル名）
 - **予約 slug**: `new` は `/posts/new` と衝突するため slug に使えない
 
-作成・編集・削除・公開は M3 以降で追加する。
+作成・編集・削除・公開と任意のGMB連携を利用できます。
 
 ## テスト
 
@@ -179,3 +179,21 @@ cargo test --test live_storage -- --ignored   # 実ストレージ疎通 (RUSTFS
 ```bash
 curl -sL -o static/daisyui.css https://cdn.jsdelivr.net/npm/daisyui@4.12.24/dist/full.min.css
 ```
+
+## 公開と再開 (M5)
+
+詳細ページの「公開・GMB」から操作します。公開すると参照中の管理メディアをR2に昇格し、記事をdraftsからpostsに移します。git commit/pushとGMB投稿はそれぞれ任意です。
+
+- git反映はmainブランチだけで実行し、他のstage済みファイルがあれば停止します。記事と追跡済みの移動元削除だけをcommitし、pushに失敗した場合も同じcommitから再開します。
+- `state/publish/<slug>.json` に操作ID、入力/変換後の内容hash、commit、送信状況を保存します。破損state/manifestは空扱いせず停止します。操作中のstateは削除しないでください。
+- GMBは本番反映の確認チェックが必要です。通常は記事公開→Netlify反映確認→「GMBだけ投稿する」の順で操作します。canonicalは現在のサイトと同じ `https://officeiko.co.jp` です。
+- GMBは送信前にin_flightをディスクへ同期します。中断・タイムアウトはunknownとなり自動再送しません。Google管理画面を確認し、未投稿の場合だけ明示的に再試行します。doneの操作は再送しません。
+- 公開済み記事の編集・削除も任意のgit反映を選べます。git失敗時は結果画面の再試行ボタンで再開できます。記事変更自体は保存済みです。
+- メディアの一部が昇格済みでも、再開時は残りだけ転送し、すべて完了してから画像参照URLを変換します。管理外URL、本文の単なるURL表記、似たprefixの画像URLは書き換えません。
+- プロセス内の操作は1つのwrite lockで直列化します。他のプロセス/エディタ/gitコマンドから同時に同じ記事やindexを変更しない運用を前提とします。
+
+GMBライブラリは隣接リポジトリ `../../../gmb-event-poster` をpath依存します。STANDARD投稿・期限更新・reqwest rustls移行を含む同時変更が必要です。実投稿テストは自動テストに含みません。対象記事と実行許可を確認してから実施してください。
+
+追加ルート: `GET/POST /posts/{slug}/publish`、`POST /posts/{slug}/gmb`、編集/削除のgit再試行 `POST /git/{id}/{slug}`。
+
+公開状態の表示は読み取り専用です。in_flightからunknownへの復旧は書き込みロック下でのみ行います。編集/削除のgit反映は記事を変更する前に意図と期待内容を保存し、中断後は一覧の「未完了のgit反映」から再開できます。同じslug・同じ内容でも、削除後に新しい下書きとして作り直した記事には新しい操作IDを使います。

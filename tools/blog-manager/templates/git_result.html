@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}git反映結果 | ブログ管理{% endblock %}
+{% block content %}
+<a class="btn btn-ghost" href="/">一覧へ戻る</a><h1 class="text-2xl my-4">git反映結果</h1>
+<p>{% if record.content_applied %}記事ファイルの変更は保存済みです。{% else %}変更操作を記録しています。再試行時に内容を照合して再開します。{% endif %}</p>
+{% match record.error %}{% when Some with (e) %}<div class="alert alert-error">{{ e }}</div>{% when None %}{% if record.pushed %}<div class="alert alert-success">git反映が完了しました。本番への反映を確認してください。</div>{% else %}<p>git反映は未完了です。</p>{% endif %}{% endmatch %}
+<form method="post" action="/git/{{ record.operation_id }}/{{ record.slug }}"><button class="btn btn-primary my-4">未完了のgit操作を再試行</button></form>
+{% endblock %}

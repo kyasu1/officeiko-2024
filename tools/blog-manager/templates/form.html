@@ -125,6 +125,7 @@
     </div>
   </div>
 
+  {% if slug_readonly %}<label><input type="checkbox" name="git" class="checkbox"> 保存後にgit commit / pushする</label>{% endif %}
   <div class="flex flex-wrap items-center gap-2">
     <button class="btn btn-primary" type="submit">{% if is_edit %}保存{% else %}下書きとして作成{% endif %}</button>
     {% if is_edit %}

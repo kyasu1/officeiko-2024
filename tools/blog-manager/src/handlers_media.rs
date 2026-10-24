@@ -4,7 +4,7 @@ use crate::handlers::{self, AppState, PostForm};
 use crate::media::{
     promote_urls, render_post_image, validate_upload, MediaError, MediaItem, MediaManifest,
 };
-use crate::repository::{PostFile, Repository, Status};
+use crate::repository::{PostFile, Status};
 use askama::Template;
 use axum::extract::{Multipart, Path, State};
 use axum::http::{header, StatusCode};
@@ -301,7 +301,7 @@ pub async fn upload(
         body,
         ..post.clone()
     };
-    let revision = latest_revision(&state.repo, &post);
+    let revision = post.revision.clone();
     if let Err(err) = state.repo.save(&updated, &revision) {
         return upload_error_page(&state, &slug, err.display_message()).await;
     }
@@ -339,12 +339,6 @@ async fn promote_object(state: &AppState, key: &str, content_type: &str) -> Resu
         .put(key, bytes, content_type)
         .await
         .map_err(|err| err.to_string())
-}
-
-/// 記事ファイルの現在の revision を取得する (アップロード中は write_lock を
-/// 持っているため、これが最新)。
-fn latest_revision(repo: &Repository, post: &PostFile) -> String {
-    repo.load(&post.path, post.status).revision
 }
 
 async fn upload_error_page(state: &AppState, slug: &str, error: String) -> Response {
@@ -443,7 +437,12 @@ pub async fn promote_pending_media(
     slug: &str,
 ) -> Result<Result<(String, String), String>, String> {
     let _guard = state.write_lock.lock().await;
-
+    promote_pending_media_locked(state, slug).await
+}
+pub(crate) async fn promote_pending_media_locked(
+    state: &AppState,
+    slug: &str,
+) -> Result<Result<(String, String), String>, String> {
     let Some(post) = state.repo.find(slug) else {
         return Err(format!("記事が見つかりません: {slug}"));
     };
@@ -451,8 +450,12 @@ pub async fn promote_pending_media(
         return Err(format!("frontmatter を解析できません: {slug}"));
     };
 
-    let mut manifest = MediaManifest::load(&state.media_dir, slug);
-    let referenced = manifest.referenced_keys(&front_matter, &post.body);
+    let mut manifest = MediaManifest::try_load(&state.media_dir, slug)?;
+    let referenced = manifest.referenced_keys_at(
+        &front_matter,
+        &post.body,
+        &[&state.rustfs.public_url(""), &state.r2.public_url("")],
+    );
     let pending: Vec<String> = referenced
         .iter()
         .filter(|key| {
@@ -497,8 +500,7 @@ pub async fn promote_pending_media(
         return Ok(Err(format!("昇格に失敗しました: {error}")));
     }
 
-    if promoted_keys.is_empty() {
-        // 昇格対象なし — そのまま完了
+    if referenced.is_empty() {
         return Ok(Ok((post.body.clone(), post.revision.clone())));
     }
 
@@ -510,7 +512,7 @@ pub async fn promote_pending_media(
         &post.body,
         &rustfs_base,
         &r2_base,
-        &promoted_keys,
+        &referenced,
     );
 
     let updated = PostFile {
@@ -518,7 +520,7 @@ pub async fn promote_pending_media(
         body: new_body,
         ..post.clone()
     };
-    let revision = latest_revision(&state.repo, &post);
+    let revision = post.revision.clone();
     if let Err(err) = state.repo.save(&updated, &revision) {
         return Err(format!(
             "記事の保存に失敗しました: {}",

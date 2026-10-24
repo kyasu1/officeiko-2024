@@ -64,6 +64,7 @@ async fn main() {
         media_dir,
         rustfs,
         r2,
+        gmb: Arc::new(blog_manager::gmb::EnvironmentGmb::default()),
     };
 
     let static_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("static");

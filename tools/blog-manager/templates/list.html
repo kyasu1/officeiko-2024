@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}記事一覧 | ブログ管理{% endblock %}
 {% block content %}
+{% if !pending_changes.is_empty() %}<div class="alert alert-warning mb-4"><div>未完了のgit反映があります。<ul>{% for r in pending_changes %}<li><a class="link" href="/git/{{ r.operation_id }}/{{ r.slug }}">{{ r.slug }} の反映を確認・再開</a></li>{% endfor %}</ul></div></div>{% endif %}
 <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
   <h1 class="text-2xl font-bold">記事一覧</h1>
   <div class="flex items-center gap-2">
