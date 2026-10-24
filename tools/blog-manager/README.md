@@ -22,6 +22,7 @@ cargo run              # http://127.0.0.1:3001
 |---|---|---|
 | `CONTENT_DIR` | `<repo>/content` | 記事ディレクトリ (`posts/`, `drafts/`) の親 |
 | `PORT` | `3001` | 待ち受けポート |
+| `TRASH_DIR` | `tools/blog-manager/.trash` | 削除した記事の退避先 |
 
 **必ず `127.0.0.1` にのみバインドする** (認証を持たないため)。将来必要になったら basic auth を追加する。
 
@@ -47,6 +48,7 @@ cargo run              # http://127.0.0.1:3001
   (例: `coverImage.url` が絶対 URL でないと Elm の `Url.fromString` が失敗しサイトのビルドが壊れるため、
   保存時に `http(s)://` の絶対 URL を要求する)
 - `tags` / `tags[].attributes` の内部にある未知キーも保持する
+- タグはフォームで `表示名,slug` の 1 行 1 件として編集する（Elm が `{attributes:{name,slug}}` を要求するため）
 
 ## 画面 (M2 時点)
 
@@ -55,11 +57,34 @@ cargo run              # http://127.0.0.1:3001
 | GET | `/` | 記事一覧 (公開済み + 下書き、状態・カテゴリ・公開日・slug・ファイル名) |
 | GET | `/posts/{slug}` | 記事詳細 (frontmatter / coverImage / 本文 / raw YAML) |
 | GET | `/files/{status}/{file_name}` | **解析できなかった記事**の詳細 (status は `published` \| `draft`) |
+| GET | `/posts/new` | 新規記事フォーム（作成先は下書き） |
+| POST | `/posts` | 記事作成（`content/drafts/` に作成） |
+| GET | `/posts/{slug}/edit` | 編集フォーム（公開済みは slug / カテゴリ変更不可） |
+| POST | `/posts/{slug}` | 記事更新 |
+| GET | `/posts/{slug}/delete` | 削除の確認 |
+| POST | `/posts/{slug}/delete` | 削除（`.trash/` に退避） |
 | GET | `/static/*` | 静的ファイル |
 
-解析できない記事は slug を持たないため、`/posts/{slug}` ではなく状態 + ファイル名で開く。
+解析できない記事・slug が不正な記事は `/posts/{slug}` に載らないため、状態 + ファイル名で開く。
 slug 空間とファイル名空間を混ぜないことで、`slug=shadowed` の正常記事と `draft/shadowed.md` の
 壊れた記事が併存しても互いを隠さない。
+
+## 同時編集・誤操作への対策
+
+- **書き込みの直列化**: 作成・更新・削除はプロセス内のグローバルロックで直列化する
+- **楽観ロック**: フォームは読み込み時の内容ハッシュ (`expected_revision`) を hidden で持ち、
+  保存時にディスクの内容が変わっていれば「他の編集が先に保存されました」として拒否する
+  （二重送信・別タブからの上書きを防ぐ）
+  - **エラー再描画では revision を更新しない**。最新の revision を返すと、古い本文のまま
+    再送信して他人の保存内容を上書きできてしまうため、衝突時は revision を空にして再送信も拒否する
+  - revision が空の更新・削除はエラー（hidden を消すだけの上書きを防ぐ）
+- **公開済み記事の不変条件**: slug とカテゴリは変更できない（URL と GMB のリンクを守るため）。
+  フォーム側で readonly/disabled にし、リポジトリ層でも拒否する
+- **上書きしない作成**: 新規作成は `create_new` で既存ファイルを上書きしない。slug は全記事で一意
+- **削除はゴミ箱へ**: ファイルは `.trash/` に退避し、復元できる。
+  宛先は `create_new` で確保してから書き込むため、同一秒に同名記事を削除しても既存の退避ファイルを
+  上書きしない（タイムスタンプ + pid + 連番 + status + ファイル名）
+- **予約 slug**: `new` は `/posts/new` と衝突するため slug に使えない
 
 作成・編集・削除・公開は M3 以降で追加する。
 
@@ -80,6 +105,17 @@ cargo test
 - `coverImage.url` の絶対 URL 検証
 - タグ内部の未知キー保持
 - slug 空間とファイル名空間の衝突 (`slug=shadowed` + `draft/shadowed.md` など)
+- 作成（下書き保存・既存ファイルの非上書き・slug 重複拒否）
+- 楽観ロック（古い revision での保存・削除の拒否）
+- 公開済み記事の slug / カテゴリ変更拒否
+- 削除で `.trash/` へ退避されること
+- タグ入力のパースとバリデーション
+- ハンドラ経由の回帰テスト（`tests/handlers.rs`）
+  - 衝突後に再送信しても他人の保存内容を上書きしない
+  - revision なしの更新を拒否
+  - タグの未知キーがハンドラ経由の保存でも残る
+  - 予約 slug の作成拒否
+  - 同一秒に同名記事を繰り返し削除しても退避内容が失われない
 
 ## 静的アセット
 

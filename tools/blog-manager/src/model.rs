@@ -89,7 +89,95 @@ pub struct FrontMatter {
     pub extra: BTreeMap<String, serde_yaml::Value>,
 }
 
+/// タグ入力欄をパースし、既存タグの未知キーを引き継ぐ。
+///
+/// タグの同一性は `attributes.slug` で判定する。表示名だけが変わっても
+/// 未知キー (`id` や `attributes` 内の追加項目) は失わない。
+pub fn merge_tags_input(input: &str, base: &[Tag]) -> Result<Vec<Tag>, String> {
+    let parsed = parse_tags_input(input)?;
+    Ok(parsed
+        .into_iter()
+        .map(|parsed_tag| {
+            let mut tag = base
+                .iter()
+                .find(|base_tag| base_tag.attributes.slug == parsed_tag.attributes.slug)
+                .cloned()
+                .unwrap_or_default();
+            tag.attributes.name = parsed_tag.attributes.name;
+            tag.attributes.slug = parsed_tag.attributes.slug;
+            tag
+        })
+        .collect())
+}
+
+/// タグ入力欄 (1行 1 件 `表示名,slug`) をパースする。
+///
+/// Elm 側は `{ attributes: { name, slug } }` を要求するが、slug を日本語から
+/// 自動生成できないため、表示名と slug を両方入力してもらう。
+pub fn parse_tags_input(input: &str) -> Result<Vec<Tag>, String> {
+    let mut tags = Vec::new();
+    for (index, line) in input.lines().enumerate() {
+        let line = line.trim();
+        if line.is_empty() {
+            continue;
+        }
+        let parts: Vec<&str> = line.split(',').map(str::trim).collect();
+        let (name, slug) = match parts.as_slice() {
+            [name, slug] if !name.is_empty() && !slug.is_empty() => (*name, *slug),
+            _ => {
+                return Err(format!(
+                    "{} 行目のタグは `表示名,slug` の形式で入力してください (現在: {line:?})",
+                    index + 1
+                ))
+            }
+        };
+        if !is_valid_slug(slug) {
+            return Err(format!(
+                "{} 行目のタグ slug は英小文字・数字・ハイフンのみ使用できます (現在: {slug:?})",
+                index + 1
+            ));
+        }
+        tags.push(Tag {
+            attributes: TagAttributes {
+                name: name.to_string(),
+                slug: slug.to_string(),
+                extra: BTreeMap::new(),
+            },
+            extra: BTreeMap::new(),
+        });
+    }
+    Ok(tags)
+}
+
+/// タグをフォーム入力欄の文字列に戻す。
+pub fn tags_to_input(tags: &[Tag]) -> String {
+    tags.iter()
+        .map(|tag| format!("{},{}", tag.attributes.name, tag.attributes.slug))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
 impl FrontMatter {
+    /// フォームの既定値 (新規作成用)
+    pub fn new_draft(published_on: String) -> Self {
+        Self {
+            title: String::new(),
+            slug: String::new(),
+            author: Some("小松原 康行".to_string()),
+            published_on,
+            category: Category::Blog,
+            tags: Vec::new(),
+            cover_image: CoverImage {
+                url: String::new(),
+                width: 1200,
+                height: 630,
+                alternative_text: Some(String::new()),
+                extra: BTreeMap::new(),
+            },
+            extra: BTreeMap::new(),
+        }
+    }
+
     /// 公開済み記事の URL パス (例: `/blog/fake-site-alert`)
     pub fn url_path(&self) -> String {
         format!("/{}/{}", self.category.url_prefix(), self.slug)
@@ -104,6 +192,11 @@ impl FrontMatter {
         if !is_valid_slug(&self.slug) {
             errors.push(format!(
                 "slug は英小文字・数字・ハイフンのみ使用できます (現在: {:?})",
+                self.slug
+            ));
+        } else if is_reserved_slug(&self.slug) {
+            errors.push(format!(
+                "slug `{}` は予約されているため使用できません",
                 self.slug
             ));
         }
@@ -136,6 +229,15 @@ impl FrontMatter {
 
         errors
     }
+}
+
+/// ルートと衝突するため slug に使えない語。
+///
+/// `slug = new` の記事は `/posts/new` になり、新規作成フォームと衝突する。
+pub const RESERVED_SLUGS: &[&str] = &["new"];
+
+pub fn is_reserved_slug(slug: &str) -> bool {
+    RESERVED_SLUGS.contains(&slug)
 }
 
 /// slug は `^[a-z0-9][a-z0-9-]*$` (パス横断や大文字を許さない)
@@ -250,6 +352,71 @@ mod tests {
         ] {
             assert!(!is_absolute_http_url(url), "{url} should be invalid");
         }
+    }
+
+    #[test]
+    fn parses_tags_input() {
+        let tags = parse_tags_input("買取,trade-in\n\n  質預かり , pawn \n").unwrap();
+        assert_eq!(tags.len(), 2);
+        assert_eq!(tags[0].attributes.name, "買取");
+        assert_eq!(tags[0].attributes.slug, "trade-in");
+        assert_eq!(tags[1].attributes.name, "質預かり");
+        assert_eq!(tags[1].attributes.slug, "pawn");
+        assert_eq!(tags_to_input(&tags), "買取,trade-in\n質預かり,pawn");
+    }
+
+    #[test]
+    fn rejects_malformed_tags_input() {
+        assert!(parse_tags_input("買取").is_err(), "slug がない");
+        assert!(parse_tags_input("買取,").is_err(), "slug が空");
+        assert!(parse_tags_input(",trade-in").is_err(), "name が空");
+        assert!(parse_tags_input("買取,TradeIn").is_err(), "slug が不正");
+        assert!(
+            parse_tags_input("買取,trade-in,extra").is_err(),
+            "項目が多い"
+        );
+    }
+
+    #[test]
+    fn rejects_reserved_slug() {
+        let mut front_matter = front_matter_with(Category::Blog, "new");
+        let errors = front_matter.validate();
+        assert!(errors.iter().any(|error| error.contains("予約")));
+
+        front_matter.slug = "new-post".to_string();
+        assert!(front_matter.validate().is_empty());
+    }
+
+    #[test]
+    fn merge_tags_keeps_unknown_keys_and_handles_reorder() {
+        use crate::repository::parse;
+
+        let raw = "---\ntitle: t\nslug: s\npublishedOn: 2026-01-01\ncategory: blog\ntags:\n  - id: 42\n    attributes:\n      name: 買取\n      slug: trade-in\n      customNested: keep-me\n  - id: 43\n    attributes:\n      name: 質預かり\n      slug: pawn\ncoverImage:\n  url: https://example.com/a.jpg\n  width: 1\n  height: 1\n  alternativeText: null\n---\nbody\n";
+        let base = parse(raw).unwrap().front_matter.tags;
+
+        // 並べ替え + 表示名の変更
+        let merged = merge_tags_input("質預かり,pawn\n買取館,trade-in", &base).unwrap();
+        assert_eq!(merged.len(), 2);
+        assert_eq!(merged[0].attributes.slug, "pawn");
+        assert_eq!(merged[0].attributes.name, "質預かり");
+        assert_eq!(merged[1].attributes.name, "買取館");
+        assert_eq!(
+            merged[1].attributes.extra.get("customNested"),
+            Some(&serde_yaml::Value::String("keep-me".to_string()))
+        );
+        assert!(
+            merged[1].extra.contains_key("id"),
+            "タグ直下の未知キーを保持"
+        );
+
+        // 追加したタグは extra が空
+        let merged = merge_tags_input("買取,trade-in\n新規,new-tag", &base).unwrap();
+        assert_eq!(merged.len(), 2);
+        assert!(merged[1].extra.is_empty());
+
+        // 削除したタグは消える
+        let merged = merge_tags_input("買取,trade-in", &base).unwrap();
+        assert_eq!(merged.len(), 1);
     }
 
     #[test]

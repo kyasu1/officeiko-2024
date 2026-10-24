@@ -1,12 +1,9 @@
-use axum::routing::get;
-use axum::Router;
-use blog_manager::handlers::{self, AppState};
+use blog_manager::app::router;
+use blog_manager::handlers::AppState;
 use blog_manager::repository::Repository;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::path::PathBuf;
 use std::sync::Arc;
-use tower_http::services::ServeDir;
-use tower_http::trace::TraceLayer;
 
 #[tokio::main]
 async fn main() {
@@ -28,23 +25,26 @@ async fn main() {
         .and_then(|value| value.parse().ok())
         .unwrap_or(3001);
 
-    let repo = Repository::new(&content_dir);
-    tracing::info!(content_dir = %content_dir.display(), "starting blog-manager");
+    let trash_dir = match std::env::var("TRASH_DIR") {
+        Ok(value) if !value.trim().is_empty() => PathBuf::from(value),
+        _ => PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".trash"),
+    };
+
+    let repo = Repository::new(&content_dir, &trash_dir);
+    tracing::info!(
+        content_dir = %content_dir.display(),
+        trash_dir = %trash_dir.display(),
+        "starting blog-manager"
+    );
 
     let state = AppState {
         repo: Arc::new(repo),
+        write_lock: Arc::new(tokio::sync::Mutex::new(())),
     };
 
     let static_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("static");
 
-    let app = Router::new()
-        .route("/", get(handlers::list))
-        .route("/posts/{slug}", get(handlers::detail))
-        // 解析できなかった記事は slug を持たないため、状態 + ファイル名で開く
-        .route("/files/{status}/{file_name}", get(handlers::file_detail))
-        .nest_service("/static", ServeDir::new(static_dir))
-        .layer(TraceLayer::new_for_http())
-        .with_state(state);
+    let app = router(state, static_dir);
 
     let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), port);
     let listener = match tokio::net::TcpListener::bind(addr).await {
