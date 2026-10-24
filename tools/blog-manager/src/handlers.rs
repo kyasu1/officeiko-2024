@@ -141,7 +141,10 @@ struct DetailTemplate {
     body: String,
     raw_front_matter: String,
     file_path: String,
+    /// 要修正の理由 (空なら問題なし)
     error: String,
+    /// frontmatter を解析できなかったか (本文を表示できない)
+    unparseable: bool,
 }
 
 pub async fn detail(State(state): State<AppState>, Path(slug): Path<String>) -> Response {
@@ -208,7 +211,8 @@ fn render_detail(post: PostFile) -> Response {
             body: post.body.clone(),
             raw_front_matter: post.raw_front_matter.clone(),
             file_path: post.path.display().to_string(),
-            error: String::new(),
+            error: post.error_summary(),
+            unparseable: false,
         },
         None => DetailTemplate {
             title: post.file_name.clone(),
@@ -228,6 +232,7 @@ fn render_detail(post: PostFile) -> Response {
             raw_front_matter: String::new(),
             file_path: post.path.display().to_string(),
             error: post.error_summary(),
+            unparseable: post.is_unparseable(),
         },
     };
 

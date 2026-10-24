@@ -147,13 +147,48 @@ pub fn is_valid_slug(slug: &str) -> bool {
 
 /// `http://` または `https://` で始まる絶対 URL か。
 ///
-/// Elm の `Url.fromString` は相対 URL を受理しないため、保存前にここで弾く。
+/// Elm の `Url.fromString` (elm/url 1.0.0) が受理する範囲に合わせて検証する。
+/// 受理しない URL を保存すると `Image.decoder` が失敗しサイトのビルドが壊れるため。
+///
+/// Elm 側の制約:
+///   - スキームは小文字の `http://` / `https://` のみ
+///   - authority に `@` (userinfo) を含むと `Nothing`
+///   - port は `String.toInt` で数値にできる必要がある (コロンは最大1つ)
+///   - host が空だと `Nothing`
+///
+/// Elm よりわずかに厳しく、authority 内の空白も拒否する (実用上無効なため)。
 pub fn is_absolute_http_url(url: &str) -> bool {
-    static RE: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new();
-    let re = RE.get_or_init(|| {
-        regex::Regex::new(r"^https?://[^\s/?#]+(?:[/?#]\S*)?$").expect("valid regex")
-    });
-    re.is_match(url)
+    let rest = match url.strip_prefix("http://") {
+        Some(rest) => rest,
+        None => match url.strip_prefix("https://") {
+            Some(rest) => rest,
+            None => return false,
+        },
+    };
+
+    // Elm は fragment → query → path の順に切り落とし、残りを authority として扱う。
+    let rest = rest.split('#').next().unwrap_or_default();
+    let rest = rest.split('?').next().unwrap_or_default();
+    let authority = rest.split('/').next().unwrap_or_default();
+
+    if authority.is_empty() || authority.contains('@') || authority.contains(char::is_whitespace) {
+        return false;
+    }
+
+    let mut parts = authority.split(':');
+    let host = parts.next().unwrap_or_default();
+    let port = parts.next();
+    if parts.next().is_some() {
+        // コロンが2つ以上
+        return false;
+    }
+    if host.is_empty() {
+        return false;
+    }
+    match port {
+        Some(port) => !port.is_empty() && port.chars().all(|c| c.is_ascii_digit()),
+        None => true,
+    }
 }
 
 #[cfg(test)]
@@ -189,6 +224,7 @@ mod tests {
             "http://example.com/a.png",
             "https://example.com",
             "https://example.com/a.jpg?v=1#frag",
+            "https://example.com:8443/a.jpg",
         ] {
             assert!(is_absolute_http_url(url), "{url} should be valid");
         }
@@ -204,6 +240,13 @@ mod tests {
             "ftp://example.com/a.jpg",
             "https://exa mple.com/a.jpg",
             "https://",
+            "https:///path.jpg",
+            "https://example.com:/x.jpg",
+            // Elm が拒否する (port が数値でない)
+            "https://example.com:abc/x.jpg",
+            // Elm が拒否する (userinfo)
+            "https://user@example.com/x.jpg",
+            "https://example.com:80:80/x.jpg",
         ] {
             assert!(!is_absolute_http_url(url), "{url} should be invalid");
         }

@@ -7,7 +7,9 @@
 
 {% if !error.is_empty() %}
 <div role="alert" class="alert alert-error mb-4">
-  <span>この記事は解析できませんでした: {{ error }}</span>
+  <span>
+    {% if unparseable %}このファイルは解析できませんでした{% else %}この記事は要修正です{% endif %}: {{ error }}
+  </span>
 </div>
 {% endif %}
 
@@ -77,7 +79,13 @@
 <div class="card bg-base-100 shadow mt-4">
   <div class="card-body">
     <h2 class="card-title text-base">本文</h2>
+    {% if unparseable %}
+    <div class="text-sm text-base-content/60">
+      本文を表示できません (frontmatter を解析できませんでした)。ファイルはそのまま残しています。
+    </div>
+    {% else %}
     <pre class="text-sm whitespace-pre-wrap break-words bg-base-200 rounded p-3 max-h-[60vh] overflow-y-auto"><code>{{ body }}</code></pre>
+    {% endif %}
   </div>
 </div>
 {% endblock %}

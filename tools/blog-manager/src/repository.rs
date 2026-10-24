@@ -1,4 +1,4 @@
-use crate::model::FrontMatter;
+use crate::model::{is_valid_slug, FrontMatter};
 use std::fmt;
 use std::fs;
 use std::io;
@@ -86,14 +86,25 @@ impl PostFile {
         self.validation_errors.join(" / ")
     }
 
+    /// `/posts/{slug}` で開けるか。
+    ///
+    /// slug が存在しても書式が不正 (`bad/slug`, 空, `?`/`#` 入りなど) なら
+    /// ルートに一致しないため、ファイル名経由で開く必要がある。
+    pub fn is_routable(&self) -> bool {
+        self.front_matter
+            .as_ref()
+            .map(|front_matter| is_valid_slug(&front_matter.slug))
+            .unwrap_or(false)
+    }
+
     /// 詳細ページの URL。
     ///
-    /// 解析できた記事 (検証エラーがあっても) は slug、解析できない記事は
+    /// slug が有効なら `/posts/{slug}`、それ以外 (解析不能・slug 不正) は
     /// **状態 + ファイル名** で引く。slug 空間とファイル名空間を混ぜない。
     pub fn detail_path(&self) -> String {
-        match self.slug() {
-            Some(slug) => format!("/posts/{slug}"),
-            None => format!(
+        match (&self.front_matter, self.is_routable()) {
+            (Some(front_matter), true) => format!("/posts/{}", front_matter.slug),
+            _ => format!(
                 "/files/{}/{}",
                 self.status.as_str(),
                 percent_encode(&self.file_name)
@@ -249,7 +260,7 @@ impl Repository {
     /// 任意のパスを join せず、一覧に実在するファイルだけを対象にする。
     pub fn find_file(&self, status: Status, file_name: &str) -> Option<PostFile> {
         self.list().into_iter().find(|post| {
-            post.status == status && post.file_name == file_name && post.is_unparseable()
+            post.status == status && post.file_name == file_name && !post.is_routable()
         })
     }
 
@@ -598,6 +609,53 @@ mod tests {
             3,
             "各行が一意な詳細URLを持つ: {paths:?}"
         );
+    }
+
+    /// slug が不正 (空・区切り記号入り) な記事は `/posts/{slug}` に載らないため、
+    /// ファイル名経由で開けること。detail_path と find_file の条件が一致していること。
+    #[test]
+    fn invalid_slugs_stay_reachable_via_files_route() {
+        for slug in ["bad/slug", "", "a?b", "a#b", "UPPER"] {
+            let tmp = tempfile::tempdir().unwrap();
+            let content = tmp.path();
+            fs::create_dir_all(content.join("posts")).unwrap();
+            fs::write(
+                content.join("posts/entry.md"),
+                format!("---\ntitle: T\nslug: \"{slug}\"\npublishedOn: 2026-01-01\ncategory: news\ntags: []\ncoverImage:\n  url: https://example.com/a.jpg\n  width: 1\n  height: 1\n  alternativeText: null\n---\nbody\n"),
+            )
+            .unwrap();
+
+            let repo = Repository::new(content);
+            let post = repo.list().into_iter().next().expect("listed");
+            assert!(post.has_errors(), "slug {slug:?} は要修正");
+            assert!(!post.is_routable(), "slug {slug:?} は /posts で開けない");
+            assert_eq!(
+                post.detail_path(),
+                "/files/published/entry.md",
+                "slug {slug:?}"
+            );
+
+            let found = repo
+                .find_file(Status::Published, "entry.md")
+                .unwrap_or_else(|| panic!("slug {slug:?} はファイル経由で開ける"));
+            assert_eq!(found.file_name, "entry.md");
+        }
+    }
+
+    /// 正常な slug の記事はファイル経由のルートには現れない (slug 空間を汚さない)。
+    #[test]
+    fn routable_articles_are_not_reachable_via_files_route() {
+        let tmp = tempfile::tempdir().unwrap();
+        let content = tmp.path();
+        fs::create_dir_all(content.join("posts")).unwrap();
+        fs::write(
+            content.join("posts/entry.md"),
+            "---\ntitle: T\nslug: entry\npublishedOn: 2026-01-01\ncategory: news\ntags: []\ncoverImage:\n  url: https://example.com/a.jpg\n  width: 1\n  height: 1\n  alternativeText: null\n---\nbody\n",
+        )
+        .unwrap();
+
+        let repo = Repository::new(content);
+        assert!(repo.find_file(Status::Published, "entry.md").is_none());
     }
 
     /// 解析はできても値が不正な記事は「要修正」として扱う (サイトのビルドを壊すため)。
