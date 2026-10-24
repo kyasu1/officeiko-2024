@@ -83,8 +83,12 @@ pub struct FrontMatter {
     pub category: Category,
     #[serde(default)]
     pub tags: Vec<Tag>,
-    #[serde(rename = "coverImage")]
-    pub cover_image: CoverImage,
+    #[serde(
+        rename = "coverImage",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub cover_image: Option<CoverImage>,
     #[serde(flatten, default)]
     pub extra: BTreeMap<String, serde_yaml::Value>,
 }
@@ -167,20 +171,36 @@ impl FrontMatter {
             published_on,
             category: Category::Blog,
             tags: Vec::new(),
-            cover_image: CoverImage {
-                url: String::new(),
-                width: 1200,
-                height: 630,
-                alternative_text: Some(String::new()),
-                extra: BTreeMap::new(),
-            },
+            // 下書きはカバーなしで作れる。未設定を表現するためキー自体を書かない
+            // (仮の URL を埋めない — 2026-10-24 cover-image 設計)。
+            cover_image: None,
             extra: BTreeMap::new(),
         }
+    }
+
+    /// 設定済みカバーの URL (未設定なら None)
+    pub fn cover_url(&self) -> Option<&str> {
+        self.cover_image
+            .as_ref()
+            .map(|cover| cover.url.as_str())
+            .filter(|url| !url.trim().is_empty())
     }
 
     /// 公開済み記事の URL パス (例: `/blog/fake-site-alert`)
     pub fn url_path(&self) -> String {
         format!("/{}/{}", self.category.url_prefix(), self.slug)
+    }
+
+    /// 公開 (posts へ移す) 時に必要な項目。下書き検証とは分離している。
+    ///
+    /// 未設定の記事を壊れた記事として扱わないため、カバー必須はここでのみ要求する。
+    /// 公開済み frontmatter と Elm のデコーダは coverImage を要求する。
+    pub fn validate_for_publish(&self) -> Vec<String> {
+        let mut errors = self.validate();
+        if self.cover_url().is_none() {
+            errors.push("公開するにはカバー画像が必要です".to_string());
+        }
+        errors
     }
 
     pub fn validate(&self) -> Vec<String> {
@@ -206,18 +226,21 @@ impl FrontMatter {
                 self.published_on
             ));
         }
-        if self.cover_image.url.trim().is_empty() {
-            errors.push("coverImage.url は必須です".to_string());
-        } else if !is_absolute_http_url(&self.cover_image.url) {
-            // Elm の `Image.decoder` は `Url.fromString` を使うため、
-            // 絶対 URL でないとサイトのビルドが壊れる。
-            errors.push(format!(
-                "coverImage.url は http(s) の絶対 URL で指定してください (現在: {:?})",
-                self.cover_image.url
-            ));
-        }
-        if self.cover_image.width == 0 || self.cover_image.height == 0 {
-            errors.push("coverImage の width/height は 1 以上で指定してください".to_string());
+        // カバーは下書きでは任意。設定されている場合のみ値を検証する。
+        if let Some(cover) = &self.cover_image {
+            if cover.url.trim().is_empty() {
+                errors.push("coverImage.url は必須です".to_string());
+            } else if !is_absolute_http_url(&cover.url) {
+                // Elm の `Image.decoder` は `Url.fromString` を使うため、
+                // 絶対 URL でないとサイトのビルドが壊れる。
+                errors.push(format!(
+                    "coverImage.url は http(s) の絶対 URL で指定してください (現在: {:?})",
+                    cover.url
+                ));
+            }
+            if cover.width == 0 || cover.height == 0 {
+                errors.push("coverImage の width/height は 1 以上で指定してください".to_string());
+            }
         }
         for (index, tag) in self.tags.iter().enumerate() {
             if tag.attributes.name.is_empty() || tag.attributes.slug.is_empty() {
@@ -422,9 +445,56 @@ mod tests {
     #[test]
     fn validate_rejects_relative_cover_image_url() {
         let mut front_matter = front_matter_with(Category::Blog, "a");
-        front_matter.cover_image.url = "not-a-url".to_string();
+        front_matter.cover_image.as_mut().unwrap().url = "not-a-url".to_string();
         let errors = front_matter.validate();
         assert!(errors.iter().any(|error| error.contains("絶対 URL")));
+    }
+
+    #[test]
+    fn draft_without_cover_is_valid_but_cannot_publish() {
+        let mut front_matter = front_matter_with(Category::Blog, "no-cover");
+        front_matter.cover_image = None;
+        assert!(
+            front_matter.validate().is_empty(),
+            "カバーなしの下書きは有効"
+        );
+        assert!(front_matter.cover_url().is_none());
+        let errors = front_matter.validate_for_publish();
+        assert!(
+            errors.iter().any(|error| error.contains("カバー画像")),
+            "公開時にはカバーを要求する"
+        );
+    }
+
+    #[test]
+    fn empty_cover_url_is_still_rejected_when_cover_present() {
+        let mut front_matter = front_matter_with(Category::Blog, "a");
+        front_matter.cover_image.as_mut().unwrap().url = String::new();
+        assert!(front_matter.validate().iter().any(|e| e.contains("必須")));
+        // URL が空なら cover_url() は None。公開検証もカバーなしで止まる。
+        assert!(front_matter.cover_url().is_none());
+        assert!(front_matter
+            .validate_for_publish()
+            .iter()
+            .any(|e| e.contains("カバー画像")));
+    }
+
+    #[test]
+    fn omits_cover_image_key_when_absent_and_keeps_it_when_present() {
+        let mut front_matter = front_matter_with(Category::Blog, "a");
+        front_matter.cover_image = None;
+        let raw = serde_yaml::to_string(&front_matter).unwrap();
+        assert!(!raw.contains("coverImage"), "仮の値で埋めない: {raw}");
+
+        front_matter.cover_image = Some(CoverImage {
+            url: "https://example.com/a.jpg".to_string(),
+            width: 4,
+            height: 3,
+            alternative_text: None,
+            extra: BTreeMap::new(),
+        });
+        let raw = serde_yaml::to_string(&front_matter).unwrap();
+        assert!(raw.contains("coverImage"));
     }
 
     fn front_matter_with(category: Category, slug: &str) -> FrontMatter {
@@ -435,13 +505,13 @@ mod tests {
             published_on: "2026-01-01".to_string(),
             category,
             tags: vec![],
-            cover_image: CoverImage {
+            cover_image: Some(CoverImage {
                 url: "https://example.com/a.jpg".to_string(),
                 width: 1,
                 height: 1,
                 alternative_text: None,
                 extra: BTreeMap::new(),
-            },
+            }),
             extra: BTreeMap::new(),
         }
     }

@@ -19,6 +19,7 @@
     </div>
     <form method="post" action="{{ action }}" class="mt-4 flex gap-2">
       <input type="hidden" name="expected_revision" value="{{ revision }}" />
+      <label><input type="checkbox" name="git" class="checkbox"> 公開済み記事の削除をgit commit / pushする</label>
       <button class="btn btn-error" type="submit">削除する</button>
       <a class="btn btn-ghost" href="{{ back_path }}">キャンセル</a>
     </form>

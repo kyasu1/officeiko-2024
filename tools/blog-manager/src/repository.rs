@@ -908,13 +908,13 @@ mod tests {
             published_on: "2026-01-01".to_string(),
             category: crate::model::Category::Blog,
             tags: Vec::new(),
-            cover_image: crate::model::CoverImage {
+            cover_image: Some(crate::model::CoverImage {
                 url: "https://example.com/a.jpg".to_string(),
                 width: 10,
                 height: 10,
                 alternative_text: Some(String::new()),
                 extra: std::collections::BTreeMap::new(),
-            },
+            }),
             extra: std::collections::BTreeMap::new(),
         }
     }

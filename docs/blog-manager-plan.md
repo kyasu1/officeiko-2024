@@ -1,9 +1,20 @@
-# 実装計画: Blogカテゴリ追加 + ローカル記事管理CRUDアプリ + GMB連携 (v8)
+# 実装計画: Blogカテゴリ追加 + ローカル記事管理CRUDアプリ + GMB連携 (v9)
 
 - 対象リポジトリ: `/Users/yako/Projects/officeiko-2024` (elm-pages 3.x / Netlify 静的サイト)
 - 参考ライブラリ: `/Users/yako/Projects/gmb-event-poster` (Rust / Google My Business 投稿ライブラリ)
-- バージョン: v8 — codex レビュー (v7 軽微な記載修正: 記事件数8件 / promoted 定義 /
-  RustFS URL規約の誤読防止) を反映
+- バージョン: v9 — M6確認後、カバー画像アップロード改善の合意事項を追加。
+  v8はcodexレビュー (記事件数8件 / promoted定義 / RustFS URL規約) を反映。
+
+### 実装状況と計画の読み方 (2026-10-24)
+
+M1〜M6の実装・ローカル検証済み。実GMBはSTANDARD投稿・表示確認後、ユーザーが削除済み。
+実RustFS/R2昇格と公開からNetlifyまでの全経路E2Eは未受入。詳細は `docs/m6-handoff.md`。
+以下の設計本文には当初案も残るため、現実装では次を優先する:
+
+- 公開状態は `state/publish/<slug>.json`。同一プロセスの全書込みをグローバルwrite lockで直列化。
+- メディア画面への遷移は編集内容を記事へ保存してから行う。独立したedit-sessionの実装はない。
+- canonical / CTA は `https://officeiko.co.jp`。
+- カバー画像アップロードは下記 §2.4.2 の方針で**実装済み** (2026-10-24)。本文全体のプレビューは未実装。
 
 ## 0. 確定事項
 
@@ -63,7 +74,7 @@
 
 ### 1.4 SEO / head
 - 各新ルートに `Seo.summary` + `Seo.article` (既存 `Route/Post/Slug_.elm` と同型)。
-- canonical: `https://www.officeiko.co.jp` (`src/Settings.elm`)。
+- canonical: `https://officeiko.co.jp` (`src/Settings.elm`)。
 - Blog詳細のOG image は frontmatter `coverImage` を使用。
 
 ### 1.5 検証
@@ -189,6 +200,59 @@ officeiko-2024/tools/blog-manager/
 `edit_session_id` (uuid) を持たせて分離し、id 不一致時は「他のセッションが編集中」として
 明示的に拒否する** (codex 第2回残り 反映)。
 
+### 2.4.2 カバー画像アップロード改善 (実装済み: 2026-10-24)
+
+2026-10-24のユーザー合意。新規作成時から記事ごとに画像をアップロードし、寸法を自動取得、
+画像を確認・差し替えできるようにする。URL手入力は既存画像利用の補助として残す。
+**カバーなしで下書き保存可、公開時はカバー必須**とする。
+下書きはRustFS、公開時にR2へ昇格する既存方式を利用する。
+公開済み記事のカバー必須条件とサイトのElmデコーダは維持する。
+
+現実装は保存済み記事へのカバーアップロードに対応するが、新規保存前はURL・寸法が必須。
+改善では下書き保存・読み込みと公開の検証を分離し、この循環を解消する必要がある。
+詳細と受入条件: [カバー画像設計](superpowers/specs/2026-10-24-cover-image-design.md)。
+M6から独立した次の実装として扱い、この記事全体のプレビュー実装は含めない。
+
+#### 実装記録 (pi, 2026-10-24)
+
+- `FrontMatter.cover_image` を `Option<CoverImage>` に変更。未設定は `coverImage` キー自体を書かない
+  (`skip_serializing_if`)。仮の URL で埋めない。
+- 検証を分離した。`validate()` は下書き用 (カバーは設定時のみ検証)、`validate_for_publish()` は
+  公開用でカバーを必須とする。後者は `publish::run` が revision 検証の直後・ファイル移動の前に適用し、
+  索引はカバーなし下書きを「要修正」にしない。既存8記事の `coverImage` デコーダ要件は変わらない。
+- 作成・編集フォームは `enctype="multipart/form-data"`。`handlers::ArticleForm` エクストラクタが
+  multipart (`cover_file`) と urlencoded の両方を受け付け、curl・既存テストとの互換を保つ。
+- アップロードは `handlers_media::apply_cover_upload`:
+  `validate_upload` (mime・10MB・`image` crate で寸法検出) → RustFS へ PUT → 公開済み記事は即 R2 昇格
+  → frontmatter へ URL/width/height/alternativeText を記録 → manifest 登録。
+  下書きは RustFS URL を書き、公開時に §2.5 step 0 の昇格で R2 URL へ差し替わる。
+- 画像不正・ストレージ障害・R2昇格失敗はいずれも**保存を中止**し、既存カバーと本文をそのまま残す。
+  旧カバーのオブジェクトは削除しない (孤児オブジェクトは許容)。
+- URL がないのに width/height/alt だけが入力された場合は「取り消し忘れ」としてエラーにし、入力を捨てない。
+  カバー解除は 4 項目をすべて空にする (下書きのみ可、公開時はエラー)。
+- multipart を受け付ける 4 ルートでボディ上限を適用した。axum 既定の 2MB のままでは、
+  10MB 上限のはずのアップロードが読み取れていなかった (M4 の潜在不具合)。
+  ただし `DefaultBodyLimit` は**リクエスト全体**にかかるため、ファイル単体の検証
+  (`MAX_UPLOAD_BYTES` = 10MB) とは分離し、`MAX_REQUEST_BYTES` (10MB + 2MB の余裕) を使う。
+  同一値にすると 10MB ちょうどの画像が本文などのフォーム項目と同時に通らない (codex レビュー指摘)。
+- 表示用 URL は保存用 URL と分けた (`handlers_media::preview_url_for`)。管理下の RustFS カバーは
+  非公開バケットでブラウザから直接読めないため、詳細・編集画面は `/media-preview` 中継へ振り向け、
+  記事へ書き込む URL (URL 欄) はそのまま残す。R2 など公開済み URL は直接表示する (codex レビュー指摘)。
+- テスト: `tools/blog-manager/tests/cover_upload.rs` (18件)。127.0.0.1 にメモリ保存の偽 S3 を起動し、
+  実 PUT/GET・公開時の R2 昇格まで検証する (ネットワーク不要・`--offline` で動く)。
+- 受入確認 (codex 要求):
+  - 新規作成でアップロードが失敗した場合は下書きを残さないため同一 slug が残り、入力値を維持した
+    フォームから再試行できる (`failed_cover_upload_on_create_leaves_the_slug_free_for_retry`)
+  - 公開時のカバー検証はメディア昇格・記事移動・git・GMB・state 記録より前に走る
+    (`publish_without_cover_stops_before_any_side_effect`)
+  - 画像を選ばず URL だけでカバーを設定した編集も維持される
+    (`manual_cover_url_still_works_through_multipart` / `manual_cover_url_survives_an_edit_without_a_file`)
+  - 上限すれすれの画像 + 900KB の本文でリクエスト全体が 10MB を超えても通り、
+    画像単体 10MB 超過は拒否される (`near_limit_cover_survives_the_whole_multipart_request` /
+    `cover_over_the_file_limit_is_rejected_as_too_large`)
+- 未実装: 本文全体のプレビュー (§2.4.1)。カバー画像の表示は管理下 RustFS なら
+  `/media-preview` 中継、公開済み URL は直接表示 (§2.4.2 実装済み)。
+
 ### 2.5 公開フロー (`POST /posts/:slug/publish`) — ステートマシン化
 **state モデル (codex 第2回 P1 反映)** — `tools/blog-manager/state/` 配下:
 
@@ -247,8 +311,8 @@ officeiko-2024/tools/blog-manager/
 - **git OFF / GMB ON の組合せ**: サイト未反映のまま外部投稿になる点を UI で警告。
 - **GMB単独操作** (`POST /posts/:slug/gmb`): 本番反映を確認した後に投稿できるよう、公開済み記事一覧にも
   常設ボタンを用意 (推奨運用: 公開 → デプロイ確認 → GMB投稿)。
-- **CTA URL は category 依存**: news → `https://www.officeiko.co.jp/post/<slug>`、
-  blog → `https://www.officeiko.co.jp/blog/<slug>` (News も管理対象のため — codex P1)。
+- **CTA URL は category 依存**: news → `https://officeiko.co.jp/post/<slug>`、
+  blog → `https://officeiko.co.jp/blog/<slug>` (News も管理対象のため — codex P1)。
 - **公開済み記事の編集/削除**: 保存・削除も次の build/push で本番反映されるため、
   編集/削除フォームにも git commit/push チェックボックス (デフォルトOFF) を設け、
   その場合の commit 対象は変更/削除された記事ファイルのみに限定。
@@ -419,9 +483,11 @@ officeiko-2024/tools/blog-manager/
     "actionType": "LEARN_MORE",
     "url": "<category に応じた公開URL>"
   },
-  "media": [{ "mediaFormat": "IMAGE", "sourceUrl": "<coverImage.url>" }]
+  "media": [{ "mediaFormat": "PHOTO", "sourceUrl": "<coverImage.url>" }]
 }
 ```
+- **訂正 (M6 確認)**: `mediaFormat` は `IMAGE` ではなく **`PHOTO`**。実装 (`gmb-event-poster/src/builder.rs`
+  の EVENT/STANDARD 両ビルダー) と 2026-10-24 の実 API 疎通テストで `PHOTO` を確認済み。
 - 画像: frontmatter `coverImage.url` (新規記事は R2 公開URL) を使用 — 全て公開ホスト済み。
 - 認証: 既存 Domain-Wide Delegation (service account JWT, scope `business.manage`) をそのまま利用。
 - `.env`: `tools/blog-manager/.env` に `GMB_SERVICE_ACCOUNT_EMAIL / GMB_PRIVATE_KEY / GMB_USER_EMAIL /

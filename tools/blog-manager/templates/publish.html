@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}公開 | ブログ管理{% endblock %}
+{% block content %}
+<a class="btn btn-ghost" href="/">← 一覧へ戻る</a>
+<h1 class="text-2xl font-bold my-4">公開・再開: {{ slug }}</h1>
+{% if !error.is_empty() %}<div class="alert alert-error my-4">{{ error }}</div>{% endif %}
+{% match record %}{% when Some with (r) %}
+<div class="card bg-base-100 shadow p-4 my-4">
+<p>画像: {% if r.media_promoted %}公開済み{% else %}未完了{% endif %}</p>
+<p>記事ファイル: {% if r.file_moved %}公開済み{% else %}未完了{% endif %}</p>
+<p>git commit: {% match r.commit_id %}{% when Some with (id) %}{{ id }}{% when None %}未実行{% endmatch %}</p>
+<p>git push: {% if r.pushed %}完了{% else %}未実行{% endif %}</p>
+<p>GMB: {{ format!("{:?}", r.gmb) }}</p>
+{% match r.search_url %}{% when Some with (url) %}<p>投稿URL: {{ url }}</p>{% when None %}{% endmatch %}
+</div>
+{% when None %}{% endmatch %}
+<form method="post" action="/posts/{{ slug }}/publish" class="card bg-base-100 shadow p-4 gap-4">
+<input type="hidden" name="expected_revision" value="{{ revision }}">
+<label><input type="checkbox" name="git" class="checkbox"> git commit / push を行う (mainのみ)</label>
+<label><input type="checkbox" name="gmb" class="checkbox"> GMBにも投稿する</label>
+<label><input type="checkbox" name="deployed" class="checkbox"> 本番サイトへの反映を確認した</label>
+<label><input type="checkbox" name="retry_unknown" class="checkbox"> 前回結果が不明な投稿を確認し、未投稿のため再試行する</label>
+<p class="text-sm">push後も本番への反映には時間がかかります。先に記事を公開し、本番を確認してからGMBだけ投稿できます。</p>
+<button class="btn btn-primary" type="submit">公開する / 未完了の処理を再開する</button>
+<button class="btn btn-outline" type="submit" formaction="/posts/{{ slug }}/gmb">GMBだけ投稿する</button>
+</form>
+{% endblock %}

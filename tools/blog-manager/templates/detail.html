@@ -5,6 +5,7 @@
   <a class="btn btn-ghost btn-sm" href="/">← 一覧へ戻る</a>
   {% if editable %}
   <div class="flex gap-2">
+    <a class="btn btn-sm btn-primary" href="{{ edit_path.trim_end_matches("/edit") }}/publish">公開・GMB</a>
     <a class="btn btn-sm btn-outline" href="{{ edit_path }}">編集</a>
     <a class="btn btn-sm btn-error btn-outline" href="{{ delete_path }}">削除</a>
   </div>
@@ -67,15 +68,16 @@
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
   <div class="card bg-base-100 shadow">
     <div class="card-body">
-      <h2 class="card-title text-base">coverImage</h2>
+      <h2 class="card-title text-base">カバー画像</h2>
       {% if !cover_url.is_empty() %}
+      <img src="{{ cover_preview }}" alt="カバー画像" class="max-h-40 w-auto rounded border" />
       <div class="text-xs font-mono break-all">{{ cover_url }}</div>
       <div class="text-xs text-base-content/60">{{ cover_width }} × {{ cover_height }}</div>
       {% if !cover_alt.is_empty() %}
       <div class="text-xs">alt: {{ cover_alt }}</div>
       {% endif %}
       {% else %}
-      <div class="text-base-content/40 text-sm">-</div>
+      <div class="text-base-content/60 text-sm">カバー画像なし（公開するには必要です）</div>
       {% endif %}
     </div>
   </div>
