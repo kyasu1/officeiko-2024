@@ -9,6 +9,13 @@
 **前提: 隣接リポジトリの共有ライブラリが必要** (`Cargo.toml` の path 依存
 `gmb-event-poster = { path = "../../../gmb-event-poster" }`)。このリポジトリの親ディレクトリに
 `gmb-event-poster/` がある配置で、ブランチは `codex/blog-manager-standard`。無いとビルドできない。
+共有ライブラリ: <https://gitea.tera.officeiko.co.jp/kyasu1/gmb-event-poster>。
+未取得の場合は、このリポジトリの親ディレクトリで次を実行する。
+
+```bash
+git clone --branch codex/blog-manager-standard \
+  ssh://git@gitea.tera.officeiko.co.jp:4224/kyasu1/gmb-event-poster.git
+```
 
 ```bash
 cd tools/blog-manager
