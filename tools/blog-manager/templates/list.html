@@ -3,8 +3,17 @@
 {% block content %}
 <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
   <h1 class="text-2xl font-bold">記事一覧</h1>
-  <div class="text-xs text-base-content/60 font-mono">{{ content_dir }}</div>
+  <div class="flex items-center gap-2">
+    <a class="btn btn-primary btn-sm" href="/posts/new">新規記事</a>
+    <span class="text-xs text-base-content/60 font-mono">{{ content_dir }}</span>
+  </div>
 </div>
+
+{% if !flash.is_empty() %}
+<div role="status" class="alert alert-success mb-4">
+  <span>{{ flash }}</span>
+</div>
+{% endif %}
 
 <div class="mb-4 flex flex-wrap items-center gap-2">
   <span class="badge badge-lg">全 {{ rows.len() }} 件</span>

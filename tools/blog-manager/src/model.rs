@@ -89,7 +89,74 @@ pub struct FrontMatter {
     pub extra: BTreeMap<String, serde_yaml::Value>,
 }
 
+/// タグ入力欄 (1行 1 件 `表示名,slug`) をパースする。
+///
+/// Elm 側は `{ attributes: { name, slug } }` を要求するが、slug を日本語から
+/// 自動生成できないため、表示名と slug を両方入力してもらう。
+pub fn parse_tags_input(input: &str) -> Result<Vec<Tag>, String> {
+    let mut tags = Vec::new();
+    for (index, line) in input.lines().enumerate() {
+        let line = line.trim();
+        if line.is_empty() {
+            continue;
+        }
+        let parts: Vec<&str> = line.split(',').map(str::trim).collect();
+        let (name, slug) = match parts.as_slice() {
+            [name, slug] if !name.is_empty() && !slug.is_empty() => (*name, *slug),
+            _ => {
+                return Err(format!(
+                    "{} 行目のタグは `表示名,slug` の形式で入力してください (現在: {line:?})",
+                    index + 1
+                ))
+            }
+        };
+        if !is_valid_slug(slug) {
+            return Err(format!(
+                "{} 行目のタグ slug は英小文字・数字・ハイフンのみ使用できます (現在: {slug:?})",
+                index + 1
+            ));
+        }
+        tags.push(Tag {
+            attributes: TagAttributes {
+                name: name.to_string(),
+                slug: slug.to_string(),
+                extra: BTreeMap::new(),
+            },
+            extra: BTreeMap::new(),
+        });
+    }
+    Ok(tags)
+}
+
+/// タグをフォーム入力欄の文字列に戻す。
+pub fn tags_to_input(tags: &[Tag]) -> String {
+    tags.iter()
+        .map(|tag| format!("{},{}", tag.attributes.name, tag.attributes.slug))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
 impl FrontMatter {
+    /// フォームの既定値 (新規作成用)
+    pub fn new_draft(published_on: String) -> Self {
+        Self {
+            title: String::new(),
+            slug: String::new(),
+            author: Some("小松原 康行".to_string()),
+            published_on,
+            category: Category::Blog,
+            tags: Vec::new(),
+            cover_image: CoverImage {
+                url: String::new(),
+                width: 1200,
+                height: 630,
+                alternative_text: Some(String::new()),
+                extra: BTreeMap::new(),
+            },
+            extra: BTreeMap::new(),
+        }
+    }
+
     /// 公開済み記事の URL パス (例: `/blog/fake-site-alert`)
     pub fn url_path(&self) -> String {
         format!("/{}/{}", self.category.url_prefix(), self.slug)
@@ -250,6 +317,29 @@ mod tests {
         ] {
             assert!(!is_absolute_http_url(url), "{url} should be invalid");
         }
+    }
+
+    #[test]
+    fn parses_tags_input() {
+        let tags = parse_tags_input("買取,trade-in\n\n  質預かり , pawn \n").unwrap();
+        assert_eq!(tags.len(), 2);
+        assert_eq!(tags[0].attributes.name, "買取");
+        assert_eq!(tags[0].attributes.slug, "trade-in");
+        assert_eq!(tags[1].attributes.name, "質預かり");
+        assert_eq!(tags[1].attributes.slug, "pawn");
+        assert_eq!(tags_to_input(&tags), "買取,trade-in\n質預かり,pawn");
+    }
+
+    #[test]
+    fn rejects_malformed_tags_input() {
+        assert!(parse_tags_input("買取").is_err(), "slug がない");
+        assert!(parse_tags_input("買取,").is_err(), "slug が空");
+        assert!(parse_tags_input(",trade-in").is_err(), "name が空");
+        assert!(parse_tags_input("買取,TradeIn").is_err(), "slug が不正");
+        assert!(
+            parse_tags_input("買取,trade-in,extra").is_err(),
+            "項目が多い"
+        );
     }
 
     #[test]

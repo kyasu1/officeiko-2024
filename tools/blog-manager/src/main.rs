@@ -1,4 +1,4 @@
-use axum::routing::get;
+use axum::routing::{get, post};
 use axum::Router;
 use blog_manager::handlers::{self, AppState};
 use blog_manager::repository::Repository;
@@ -28,18 +28,34 @@ async fn main() {
         .and_then(|value| value.parse().ok())
         .unwrap_or(3001);
 
-    let repo = Repository::new(&content_dir);
-    tracing::info!(content_dir = %content_dir.display(), "starting blog-manager");
+    let trash_dir = match std::env::var("TRASH_DIR") {
+        Ok(value) if !value.trim().is_empty() => PathBuf::from(value),
+        _ => PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".trash"),
+    };
+
+    let repo = Repository::new(&content_dir, &trash_dir);
+    tracing::info!(
+        content_dir = %content_dir.display(),
+        trash_dir = %trash_dir.display(),
+        "starting blog-manager"
+    );
 
     let state = AppState {
         repo: Arc::new(repo),
+        write_lock: Arc::new(tokio::sync::Mutex::new(())),
     };
 
     let static_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("static");
 
     let app = Router::new()
         .route("/", get(handlers::list))
-        .route("/posts/{slug}", get(handlers::detail))
+        .route("/posts/new", get(handlers::new_form))
+        .route("/posts", post(handlers::create))
+        .route("/posts/{slug}", get(handlers::detail_with_flash))
+        .route("/posts/{slug}", post(handlers::update))
+        .route("/posts/{slug}/edit", get(handlers::edit_form))
+        .route("/posts/{slug}/delete", get(handlers::delete_confirm))
+        .route("/posts/{slug}/delete", post(handlers::delete))
         // 解析できなかった記事は slug を持たないため、状態 + ファイル名で開く
         .route("/files/{status}/{file_name}", get(handlers::file_detail))
         .nest_service("/static", ServeDir::new(static_dir))

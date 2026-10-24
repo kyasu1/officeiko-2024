@@ -1,14 +1,19 @@
-use crate::model::Category;
+use crate::model::{parse_tags_input, tags_to_input, Category, CoverImage, FrontMatter};
 use crate::repository::{PostFile, Repository, Status};
 use askama::Template;
 use axum::extract::{Path, State};
-use axum::http::StatusCode;
-use axum::response::{Html, IntoResponse, Response};
+use axum::http::{header, StatusCode};
+use axum::response::{Html, IntoResponse, Redirect, Response};
+use axum::Form;
+use serde::Deserialize;
+use std::collections::BTreeMap;
 use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct AppState {
     pub repo: Arc<Repository>,
+    /// 書き込み系の操作を直列化する (同時保存・二重送信の防止)
+    pub write_lock: Arc<tokio::sync::Mutex<()>>,
 }
 
 /// askama テンプレートの `render()` を HTTP レスポンスにする。
@@ -38,6 +43,7 @@ struct ListTemplate {
     published_count: usize,
     draft_count: usize,
     broken_count: usize,
+    flash: String,
 }
 
 pub struct PostRow {
@@ -95,7 +101,17 @@ fn status_class(status: Status) -> &'static str {
     }
 }
 
-pub async fn list(State(state): State<AppState>) -> Response {
+/// 一覧のクエリ (`?flash=created` など)
+#[derive(Deserialize)]
+pub struct ListQuery {
+    #[serde(default)]
+    pub flash: String,
+}
+
+pub async fn list(
+    State(state): State<AppState>,
+    query: axum::extract::Query<ListQuery>,
+) -> Response {
     let posts = state.repo.list();
     let rows: Vec<PostRow> = posts.iter().map(PostRow::from_post).collect();
 
@@ -115,7 +131,17 @@ pub async fn list(State(state): State<AppState>) -> Response {
         published_count,
         draft_count,
         broken_count,
+        flash: flash_message(&query.flash).to_string(),
     })
+}
+
+fn flash_message(flash: &str) -> &'static str {
+    match flash {
+        "created" => "下書きを作成しました。",
+        "updated" => "保存しました。",
+        "deleted" => "削除しました (.trash に退避)。",
+        _ => "",
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -145,11 +171,18 @@ struct DetailTemplate {
     error: String,
     /// frontmatter を解析できなかったか (本文を表示できない)
     unparseable: bool,
+    /// 編集・削除できるか (解析できていること)
+    editable: bool,
+    /// 一覧へ戻る前の通知
+    flash: String,
+    /// 削除確認へのリンク用
+    delete_path: String,
+    edit_path: String,
 }
 
 pub async fn detail(State(state): State<AppState>, Path(slug): Path<String>) -> Response {
     match state.repo.find(&slug) {
-        Some(post) => render_detail(post),
+        Some(post) => render_detail(post, ""),
         None => not_found(&format!("slug: {slug}")),
     }
 }
@@ -163,7 +196,7 @@ pub async fn file_detail(
         return not_found(&format!("status: {status}"));
     };
     match state.repo.find_file(status, &file_name) {
-        Some(post) => render_detail(post),
+        Some(post) => render_detail(post, ""),
         None => not_found(&format!("file: {file_name}")),
     }
 }
@@ -187,8 +220,12 @@ fn not_found(detail: &str) -> Response {
         .into_response()
 }
 
-fn render_detail(post: PostFile) -> Response {
+fn render_detail(post: PostFile, flash: &str) -> Response {
     let front_matter = post.front_matter.clone();
+    let editable = front_matter.is_some();
+    let error = post.error_summary();
+    let detail_path = post.detail_path();
+
     let template = match front_matter {
         Some(fm) => DetailTemplate {
             title: fm.title.clone(),
@@ -211,8 +248,12 @@ fn render_detail(post: PostFile) -> Response {
             body: post.body.clone(),
             raw_front_matter: post.raw_front_matter.clone(),
             file_path: post.path.display().to_string(),
-            error: post.error_summary(),
+            error,
             unparseable: false,
+            editable,
+            flash: flash.to_string(),
+            delete_path: format!("{detail_path}/delete"),
+            edit_path: format!("{detail_path}/edit"),
         },
         None => DetailTemplate {
             title: post.file_name.clone(),
@@ -231,12 +272,416 @@ fn render_detail(post: PostFile) -> Response {
             body: String::new(),
             raw_front_matter: String::new(),
             file_path: post.path.display().to_string(),
-            error: post.error_summary(),
-            unparseable: post.is_unparseable(),
+            error,
+            unparseable: true,
+            editable,
+            flash: flash.to_string(),
+            delete_path: format!("{detail_path}/delete"),
+            edit_path: format!("{detail_path}/edit"),
         },
     };
 
     render_template(template)
+}
+
+// ---------------------------------------------------------------------------
+// 作成 / 編集フォーム
+// ---------------------------------------------------------------------------
+
+#[derive(Template)]
+#[template(path = "form.html")]
+struct FormTemplate {
+    heading: &'static str,
+    is_edit: bool,
+    action: String,
+    /// 公開済み記事は slug / category を変更できない
+    slug_readonly: bool,
+    category_readonly: bool,
+    /// 編集対象のファイル (表示用)
+    file_path: String,
+    /// 楽観ロック用の hidden 値
+    revision: String,
+    errors: Vec<String>,
+    values: FormValues,
+}
+
+#[derive(Default, Clone)]
+struct FormValues {
+    title: String,
+    slug: String,
+    category: String,
+    published_on: String,
+    author: String,
+    cover_url: String,
+    cover_width: String,
+    cover_height: String,
+    cover_alt: String,
+    tags: String,
+    body: String,
+}
+
+impl FormValues {
+    fn from_front_matter(front_matter: &FrontMatter, body: &str) -> Self {
+        Self {
+            title: front_matter.title.clone(),
+            slug: front_matter.slug.clone(),
+            category: front_matter.category.as_str().to_string(),
+            published_on: front_matter.published_on.clone(),
+            author: front_matter.author.clone().unwrap_or_default(),
+            cover_url: front_matter.cover_image.url.clone(),
+            cover_width: front_matter.cover_image.width.to_string(),
+            cover_height: front_matter.cover_image.height.to_string(),
+            cover_alt: front_matter
+                .cover_image
+                .alternative_text
+                .clone()
+                .unwrap_or_default(),
+            tags: tags_to_input(&front_matter.tags),
+            body: body.to_string(),
+        }
+    }
+}
+
+#[derive(Deserialize, Default)]
+pub struct PostForm {
+    #[serde(default)]
+    pub title: String,
+    #[serde(default)]
+    pub slug: String,
+    #[serde(default)]
+    pub category: String,
+    #[serde(default)]
+    pub published_on: String,
+    #[serde(default)]
+    pub author: String,
+    #[serde(default)]
+    pub cover_url: String,
+    #[serde(default)]
+    pub cover_width: String,
+    #[serde(default)]
+    pub cover_height: String,
+    #[serde(default)]
+    pub cover_alt: String,
+    #[serde(default)]
+    pub tags: String,
+    #[serde(default)]
+    pub body: String,
+    #[serde(default)]
+    pub expected_revision: String,
+}
+
+impl PostForm {
+    fn values(&self) -> FormValues {
+        FormValues {
+            title: self.title.clone(),
+            slug: self.slug.clone(),
+            category: self.category.clone(),
+            published_on: self.published_on.clone(),
+            author: self.author.clone(),
+            cover_url: self.cover_url.clone(),
+            cover_width: self.cover_width.clone(),
+            cover_height: self.cover_height.clone(),
+            cover_alt: self.cover_alt.clone(),
+            tags: self.tags.clone(),
+            body: self.body.clone(),
+        }
+    }
+
+    /// フォーム入力を検証して frontmatter に変換する。
+    fn to_front_matter(&self, base: FrontMatter) -> Result<FrontMatter, Vec<String>> {
+        let mut errors = Vec::new();
+
+        let category = match self.category.trim() {
+            "news" => Category::News,
+            "blog" => Category::Blog,
+            other => {
+                errors.push(format!(
+                    "カテゴリは news / blog のいずれかです (現在: {other:?})"
+                ));
+                base.category
+            }
+        };
+
+        let cover_width = parse_dimension(&self.cover_width, "coverImage.width", &mut errors);
+        let cover_height = parse_dimension(&self.cover_height, "coverImage.height", &mut errors);
+
+        let tags = match parse_tags_input(&self.tags) {
+            Ok(tags) => tags,
+            Err(error) => {
+                errors.push(error);
+                base.tags.clone()
+            }
+        };
+
+        let alternative_text = {
+            let value = self.cover_alt.trim();
+            if value.is_empty() {
+                Some(String::new())
+            } else {
+                Some(value.to_string())
+            }
+        };
+
+        let front_matter = FrontMatter {
+            title: self.title.trim().to_string(),
+            slug: self.slug.trim().to_string(),
+            author: {
+                let author = self.author.trim();
+                if author.is_empty() {
+                    None
+                } else {
+                    Some(author.to_string())
+                }
+            },
+            published_on: self.published_on.trim().to_string(),
+            category,
+            tags,
+            cover_image: CoverImage {
+                url: self.cover_url.trim().to_string(),
+                width: cover_width,
+                height: cover_height,
+                alternative_text,
+                extra: base.cover_image.extra.clone(),
+            },
+            extra: base.extra.clone(),
+        };
+
+        // モデル側の検証 (slug 形式・日付・URL など)
+        errors.extend(front_matter.validate());
+        errors.dedup();
+
+        if errors.is_empty() {
+            Ok(front_matter)
+        } else {
+            Err(errors)
+        }
+    }
+}
+
+fn parse_dimension(value: &str, field: &str, errors: &mut Vec<String>) -> u32 {
+    match value.trim().parse::<u32>() {
+        Ok(number) if number > 0 => number,
+        _ => {
+            errors.push(format!("{field} は 1 以上の整数で指定してください"));
+            0
+        }
+    }
+}
+
+pub async fn new_form() -> Response {
+    render_template(form_template_new(
+        FormValues {
+            published_on: chrono::Local::now().format("%Y-%m-%d").to_string(),
+            category: "blog".to_string(),
+            ..FormValues::from_front_matter(&FrontMatter::new_draft(String::new()), "")
+        },
+        Vec::new(),
+    ))
+}
+
+fn form_template_new(values: FormValues, errors: Vec<String>) -> FormTemplate {
+    FormTemplate {
+        heading: "新規記事 (下書き)",
+        is_edit: false,
+        action: "/posts".to_string(),
+        slug_readonly: false,
+        category_readonly: false,
+        file_path: String::new(),
+        revision: String::new(),
+        errors,
+        values,
+    }
+}
+
+pub async fn create(State(state): State<AppState>, Form(form): Form<PostForm>) -> Response {
+    let _guard = state.write_lock.lock().await;
+
+    let base = FrontMatter::new_draft(form.published_on.clone());
+    let front_matter = match form.to_front_matter(base) {
+        Ok(front_matter) => front_matter,
+        Err(errors) => {
+            return render_template(form_template_new(form.values(), errors));
+        }
+    };
+
+    match state.repo.create(&front_matter, &form.body) {
+        Ok(_) => Redirect::to("/?flash=created").into_response(),
+        Err(err) => render_template(form_template_new(
+            form.values(),
+            vec![err.display_message()],
+        )),
+    }
+}
+
+pub async fn edit_form(State(state): State<AppState>, Path(slug): Path<String>) -> Response {
+    let Some(post) = state.repo.find(&slug) else {
+        return not_found(&format!("slug: {slug}"));
+    };
+    let Some(front_matter) = post.front_matter.clone() else {
+        return not_found(&format!(
+            "frontmatter を解析できないため編集できません: {}",
+            post.file_name
+        ));
+    };
+
+    render_template(FormTemplate {
+        heading: "記事を編集",
+        is_edit: true,
+        action: post.detail_path(),
+        slug_readonly: post.status == Status::Published,
+        category_readonly: post.status == Status::Published,
+        file_path: post.path.display().to_string(),
+        revision: post.revision.clone(),
+        errors: Vec::new(),
+        values: FormValues::from_front_matter(&front_matter, &post.body),
+    })
+}
+
+pub async fn update(
+    State(state): State<AppState>,
+    Path(slug): Path<String>,
+    Form(form): Form<PostForm>,
+) -> Response {
+    let _guard = state.write_lock.lock().await;
+
+    let Some(post) = state.repo.find(&slug) else {
+        return not_found(&format!("slug: {slug}"));
+    };
+    let Some(current) = post.front_matter.clone() else {
+        return not_found("frontmatter を解析できないため編集できません");
+    };
+
+    let front_matter = match form.to_front_matter(current.clone()) {
+        Ok(front_matter) => front_matter,
+        Err(errors) => {
+            return render_template(FormTemplate {
+                heading: "記事を編集",
+                is_edit: true,
+                action: post.detail_path(),
+                slug_readonly: post.status == Status::Published,
+                category_readonly: post.status == Status::Published,
+                file_path: post.path.display().to_string(),
+                revision: post.revision.clone(),
+                errors,
+                values: form.values(),
+            });
+        }
+    };
+
+    let updated = PostFile {
+        front_matter: Some(front_matter),
+        body: form.body.clone(),
+        ..post.clone()
+    };
+
+    match state
+        .repo
+        .save(&updated, Some(form.expected_revision.as_str()))
+    {
+        Ok(()) => {
+            let target = state
+                .repo
+                .find(updated.slug().unwrap_or(&slug))
+                .map(|saved| saved.detail_path())
+                .unwrap_or_else(|| "/".to_string());
+            Redirect::to(&format!("{target}?flash=updated")).into_response()
+        }
+        Err(err) => {
+            let errors = vec![err.display_message()];
+            render_template(FormTemplate {
+                heading: "記事を編集",
+                is_edit: true,
+                action: post.detail_path(),
+                slug_readonly: post.status == Status::Published,
+                category_readonly: post.status == Status::Published,
+                file_path: post.path.display().to_string(),
+                revision: post.revision.clone(),
+                errors,
+                values: form.values(),
+            })
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 削除
+// ---------------------------------------------------------------------------
+
+#[derive(Template)]
+#[template(path = "delete_confirm.html")]
+struct DeleteTemplate {
+    title: String,
+    slug: String,
+    status_label: &'static str,
+    status_class: &'static str,
+    file_path: String,
+    action: String,
+    revision: String,
+    back_path: String,
+}
+
+pub async fn delete_confirm(State(state): State<AppState>, Path(slug): Path<String>) -> Response {
+    let Some(post) = state.repo.find(&slug) else {
+        return not_found(&format!("slug: {slug}"));
+    };
+    let detail_path = post.detail_path();
+
+    render_template(DeleteTemplate {
+        title: post.title().to_string(),
+        slug: post.slug().unwrap_or_default().to_string(),
+        status_label: post.status.label(),
+        status_class: status_class(post.status),
+        file_path: post.path.display().to_string(),
+        action: format!("{detail_path}/delete"),
+        revision: post.revision.clone(),
+        back_path: detail_path,
+    })
+}
+
+pub async fn delete(
+    State(state): State<AppState>,
+    Path(slug): Path<String>,
+    Form(form): Form<PostForm>,
+) -> Response {
+    let _guard = state.write_lock.lock().await;
+
+    let Some(post) = state.repo.find(&slug) else {
+        return not_found(&format!("slug: {slug}"));
+    };
+
+    match state
+        .repo
+        .delete(&post, Some(form.expected_revision.as_str()))
+    {
+        Ok(trash_path) => {
+            tracing::info!(path = %trash_path.display(), "moved article to trash");
+            Redirect::to("/?flash=deleted").into_response()
+        }
+        Err(err) => (
+            StatusCode::BAD_REQUEST,
+            Html(format!(
+                "<h1>削除できませんでした</h1><p>{}</p><p><a href=\"{}\">戻る</a></p>",
+                html_escape(&err.to_string()),
+                html_escape(&post.detail_path())
+            )),
+        )
+            .into_response(),
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 詳細ページのフラッシュ (?flash=updated を表示するため)
+// ---------------------------------------------------------------------------
+
+pub async fn detail_with_flash(
+    State(state): State<AppState>,
+    Path(slug): Path<String>,
+    query: axum::extract::Query<ListQuery>,
+) -> Response {
+    match state.repo.find(&slug) {
+        Some(post) => render_detail(post, flash_message(&query.flash)),
+        None => not_found(&format!("slug: {slug}")),
+    }
 }
 
 fn html_escape(input: &str) -> String {
@@ -248,8 +693,20 @@ fn html_escape(input: &str) -> String {
         .replace('\'', "&#39;")
 }
 
-/// テスト用にカテゴリ表示の対応を確認する
 #[allow(dead_code)]
 fn category_label(category: Category) -> &'static str {
     category.label()
+}
+
+#[allow(dead_code)]
+fn empty_extra() -> BTreeMap<String, serde_yaml::Value> {
+    BTreeMap::new()
+}
+
+#[allow(dead_code)]
+fn content_type_html() -> ([(header::HeaderName, &'static str); 1], StatusCode) {
+    (
+        [(header::CONTENT_TYPE, "text/html; charset=utf-8")],
+        StatusCode::OK,
+    )
 }

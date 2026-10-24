@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}削除の確認 | ブログ管理{% endblock %}
+{% block content %}
+<div class="mb-4">
+  <a class="btn btn-ghost btn-sm" href="{{ back_path }}">← 戻る</a>
+</div>
+
+<div class="card bg-base-100 shadow border-2 border-error">
+  <div class="card-body">
+    <h1 class="card-title text-error text-2xl">この記事を削除しますか？</h1>
+    <div class="flex flex-wrap items-center gap-2 mt-2">
+      <span class="badge {{ status_class }}">{{ status_label }}</span>
+      <span class="font-bold text-lg">{{ title }}</span>
+    </div>
+    <p class="text-sm text-base-content/70">slug: <span class="font-mono">{{ slug }}</span></p>
+    <p class="text-sm font-mono break-all text-base-content/60">{{ file_path }}</p>
+    <div role="alert" class="alert alert-warning mt-4">
+      <span>ファイルは削除されず <code>.trash/</code> に退避されます（復元可能）。git の管理下にあれば <code>git status</code> で差分が出ます。</span>
+    </div>
+    <form method="post" action="{{ action }}" class="mt-4 flex gap-2">
+      <input type="hidden" name="expected_revision" value="{{ revision }}" />
+      <button class="btn btn-error" type="submit">削除する</button>
+      <a class="btn btn-ghost" href="{{ back_path }}">キャンセル</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

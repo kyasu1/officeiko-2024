@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}{{ heading }} | ブログ管理{% endblock %}
+{% block content %}
+<div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+  <a class="btn btn-ghost btn-sm" href="/">← 一覧へ戻る</a>
+  {% if !file_path.is_empty() %}
+  <div class="text-xs text-base-content/60 font-mono break-all">{{ file_path }}</div>
+  {% endif %}
+</div>
+
+<h1 class="text-2xl font-bold mb-4">{{ heading }}</h1>
+
+{% if !errors.is_empty() %}
+<div role="alert" class="alert alert-error mb-4">
+  <div>
+    <div class="font-bold">保存できませんでした</div>
+    <ul class="list-disc list-inside text-sm">
+      {% for error in errors %}
+      <li>{{ error }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endif %}
+
+<form method="post" action="{{ action }}" class="space-y-4">
+  <input type="hidden" name="expected_revision" value="{{ revision }}" />
+
+  <div class="card bg-base-100 shadow">
+    <div class="card-body grid grid-cols-1 md:grid-cols-2 gap-4">
+      <label class="form-control md:col-span-2">
+        <div class="label"><span class="label-text font-semibold">タイトル <span class="text-error">*</span></span></div>
+        <input class="input input-bordered w-full" type="text" name="title" value="{{ values.title }}" required />
+      </label>
+
+      <label class="form-control">
+        <div class="label"><span class="label-text font-semibold">slug <span class="text-error">*</span></span></div>
+        <input class="input input-bordered w-full font-mono" type="text" name="slug" value="{{ values.slug }}"
+               pattern="[a-z0-9][a-z0-9-]*" {% if slug_readonly %}readonly{% else %}required{% endif %} />
+        <div class="label">
+          <span class="label-text-alt">
+            {% if slug_readonly %}公開済み記事の slug は変更できません（URL が変わります）
+            {% else %}英小文字・数字・ハイフン。公開後は変更できません{% endif %}
+          </span>
+        </div>
+      </label>
+
+      <label class="form-control">
+        <div class="label"><span class="label-text font-semibold">カテゴリ <span class="text-error">*</span></span></div>
+        <select class="select select-bordered w-full" name="category" {% if category_readonly %}disabled{% endif %}>
+          <option value="blog" {% if values.category == "blog" %}selected{% endif %}>ブログ (blog → /blog/:slug)</option>
+          <option value="news" {% if values.category == "news" %}selected{% endif %}>お知らせ (news → /post/:slug)</option>
+        </select>
+        {% if category_readonly %}
+        <input type="hidden" name="category" value="{{ values.category }}" />
+        <div class="label"><span class="label-text-alt">公開済み記事のカテゴリは変更できません（URL が変わります）</span></div>
+        {% endif %}
+      </label>
+
+      <label class="form-control">
+        <div class="label"><span class="label-text font-semibold">公開日 <span class="text-error">*</span></span></div>
+        <input class="input input-bordered w-full font-mono" type="date" name="published_on" value="{{ values.published_on }}" required />
+      </label>
+
+      <label class="form-control">
+        <div class="label"><span class="label-text font-semibold">著者</span></div>
+        <input class="input input-bordered w-full" type="text" name="author" value="{{ values.author }}" />
+      </label>
+    </div>
+  </div>
+
+  <div class="card bg-base-100 shadow">
+    <div class="card-body grid grid-cols-1 md:grid-cols-4 gap-4">
+      <h2 class="card-title text-base md:col-span-4">coverImage</h2>
+      <label class="form-control md:col-span-4">
+        <div class="label"><span class="label-text font-semibold">URL <span class="text-error">*</span></span></div>
+        <input class="input input-bordered w-full font-mono text-sm" type="url" name="cover_url" value="{{ values.cover_url }}" required />
+        <div class="label"><span class="label-text-alt">http(s) の絶対 URL（Elm 側が相対 URL を受理しないため必須）</span></div>
+      </label>
+      <label class="form-control">
+        <div class="label"><span class="label-text font-semibold">width</span></div>
+        <input class="input input-bordered w-full font-mono" type="number" min="1" name="cover_width" value="{{ values.cover_width }}" required />
+      </label>
+      <label class="form-control">
+        <div class="label"><span class="label-text font-semibold">height</span></div>
+        <input class="input input-bordered w-full font-mono" type="number" min="1" name="cover_height" value="{{ values.cover_height }}" required />
+      </label>
+      <label class="form-control md:col-span-2">
+        <div class="label"><span class="label-text font-semibold">alternativeText</span></div>
+        <input class="input input-bordered w-full" type="text" name="cover_alt" value="{{ values.cover_alt }}" />
+      </label>
+    </div>
+  </div>
+
+  <div class="card bg-base-100 shadow">
+    <div class="card-body">
+      <h2 class="card-title text-base">タグ</h2>
+      <label class="form-control">
+        <textarea class="textarea textarea-bordered font-mono text-sm h-24" name="tags" placeholder="買取,trade-in">{{ values.tags }}</textarea>
+        <div class="label"><span class="label-text-alt">1 行 1 件、`表示名,slug` の形式（slug は半角英小文字）</span></div>
+      </label>
+    </div>
+  </div>
+
+  <div class="card bg-base-100 shadow">
+    <div class="card-body">
+      <h2 class="card-title text-base">本文 (Markdown)</h2>
+      <label class="form-control">
+        <textarea class="textarea textarea-bordered font-mono text-sm h-[50vh]" name="body">{{ values.body }}</textarea>
+        <div class="label"><span class="label-text-alt">本文はそのままファイルに書き込まれます（frontmatter 境界より後ろ）</span></div>
+      </label>
+    </div>
+  </div>
+
+  <div class="flex flex-wrap items-center gap-2">
+    <button class="btn btn-primary" type="submit">{% if is_edit %}保存{% else %}下書きとして作成{% endif %}</button>
+    <a class="btn btn-ghost" href="/">キャンセル</a>
+    {% if !is_edit %}
+    <span class="text-xs text-base-content/60">作成直後は下書き (content/drafts/) に保存されます</span>
+    {% endif %}
+  </div>
+</form>
+{% endblock %}
