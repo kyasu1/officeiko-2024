@@ -104,7 +104,31 @@ M6とは独立のスライスとして実装した。設計は上記 spec、計�
 - 作成・編集フォームを multipart 化 (`cover_file`)。`ArticleForm` が urlencoded も受理
 - `handlers_media::apply_cover_upload` で検証→RustFS PUT→(公開済みは R2 昇格)→frontmatter 記録→
   manifest 登録。失敗時は保存を中止し既存カバー・本文を維持
-- multipart ルート 4 本のボディ上限を 10MB へ (axum 既定 2MB でアップロード不可だった)
-- テスト `tools/blog-manager/tests/cover_upload.rs` 11件 (偽 S3 で実 PUT/GET・昇格まで)
-- 実行 gates: アプリ 85 passed / 0 failed / 2 ignored、fmt・clippy `-D warnings` 通過
+- multipart ルート 4 本にボディ上限を適用 (axum 既定 2MB ではアップロード不可だった)。
+  リクエスト全体上限 `MAX_REQUEST_BYTES` (10MB + 2MB) とファイル単体検証
+  (`MAX_UPLOAD_BYTES` = 10MB) は分離
+- カバーの表示用 URL は `preview_url_for` で算出。管理下 RustFS は `/media-preview` 中継、
+  公開済み URL は直接表示 (記事へ書き込む URL とは別)
+- テスト `tools/blog-manager/tests/cover_upload.rs` 18件 (偽 S3 で実 PUT/GET・昇格まで)
+- 実行 gates: アプリ 92 passed / 0 failed / 2 ignored、fmt・clippy `-D warnings` 通過
 - 実 RustFS/R2・Netlify・GMB への外部副作用は**実行していない**
+
+### codex レビュー (b86ccd7) への対応
+
+2 点の指摘はいずれも実在の不具合で、修正した。
+
+1. `templates/form.html` が `values.cover_url` を `<img src>` に直接使用し、非公開 RustFS の
+   下書きカバーが表示できなかった (`detail.html` が追加した `<img>` も同様)。表示専用
+   `cover_preview` を追加し、管理下 RustFS キーは `/media-preview` 中継へ振り向けた。
+   保存される URL は URL 欄どおり。テスト: `draft_cover_preview_goes_through_the_media_relay` /
+   `published_cover_preview_is_used_directly`
+2. `DefaultBodyLimit::max(MAX_UPLOAD_BYTES)` はファイル単体でなく multipart 全体の上限で、
+   10MB の有効な画像が他のフォーム項目と同時に通らなかった。`MAX_REQUEST_BYTES`
+   (10MB + 2MB 余裕) に引き上げ、ファイル単体の 10MB 検証は `validate_upload` で維持。
+   テスト: `near_limit_cover_survives_the_whole_multipart_request` (上限を 10MB に戻すと
+   400 `multipart が不正です` で落ちることを確認済み) /
+   `cover_over_the_file_limit_is_rejected_as_too_large`
+
+受入条件として要求された導線もテストで固定した: 新規作成のアップロード失敗時は下書きを
+残さず同一 slug で再試行できる、公開時のカバー検証は昇格・移動・git・GMB・state 記録より前、
+画像を選ばない URL だけの編集は維持される。

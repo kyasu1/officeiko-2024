@@ -1,7 +1,7 @@
 use crate::handlers;
 use crate::handlers::AppState;
 use crate::handlers_media;
-use crate::media::MAX_UPLOAD_BYTES;
+use crate::media::MAX_REQUEST_BYTES;
 use axum::extract::DefaultBodyLimit;
 use axum::routing::{get, post};
 use axum::Router;
@@ -11,10 +11,12 @@ use tower_http::trace::TraceLayer;
 
 /// カバー画像つきフォームを受け入れるルートに適用するボディ上限。
 ///
-/// axum 既定の 2MB だとカバー画像 (最大 10MB) が読み取れないため、
-/// `validate_upload` の上限と揃える。
+/// axum 既定の 2MB だとカバー画像 (ファイル単体で最大 10MB) が読み取れない。
+/// ここは**リクエスト全体**の上限なので、ファイル単体の上限 + フォーム項目分の
+/// 余裕 (`MAX_REQUEST_BYTES`) を使う。10MB ちょうどの画像は `validate_upload`
+/// 側で拒否される。
 fn upload_body_limit() -> DefaultBodyLimit {
-    DefaultBodyLimit::max(MAX_UPLOAD_BYTES)
+    DefaultBodyLimit::max(MAX_REQUEST_BYTES)
 }
 
 /// ルーターを組み立てる (テストからも同じ構成を使う)。

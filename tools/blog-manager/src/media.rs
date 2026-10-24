@@ -24,6 +24,15 @@ pub const ALLOWED_TYPES: &[(&str, &str)] = &[
 /// 1 ファイルの上限 (bytes)。
 pub const MAX_UPLOAD_BYTES: usize = 10 * 1024 * 1024;
 
+/// multipart **リクエスト全体**のボディ上限。
+///
+/// `MAX_UPLOAD_BYTES` は画像ファイル単体の検証上限で、multipart のボディには
+/// 境界マーカーや他のフォーム項目 (title / body / hidden の revision など) も含まれる。
+/// 同一値をリクエスト上限に使うと、10MB ちょうど有効な画像が他の項目と同時に
+/// 通らない (axum は上限超過でボディを切るため、検証前に失敗する)。
+/// フォーム項目分の余裕を持たせ、ファイル単体の 10MB 検証は `validate_upload` で維持する。
+pub const MAX_REQUEST_BYTES: usize = MAX_UPLOAD_BYTES + 2 * 1024 * 1024;
+
 /// manifest の 1 アイテム。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct MediaItem {

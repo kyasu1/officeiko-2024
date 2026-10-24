@@ -640,3 +640,353 @@ async fn cover_dimensions_without_url_are_rejected() {
     assert!(html.contains("URL を入力してください"), "{html}");
     assert!(!fixture.draft_path("half-cover").exists());
 }
+
+// ---------------------------------------------------------------------------
+// codex 指摘 (b86ccd7 レビュー) の境界テスト
+// ---------------------------------------------------------------------------
+
+/// ノイズ画像の PNG。圧縮されないためサイズを予測できる (上限テスト用)。
+fn noisy_png(side: u32) -> Vec<u8> {
+    let mut seed: u64 = 0x2545_F491_4F6C_DD1D;
+    let mut next = move || {
+        seed = seed
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
+        (seed >> 33) as u8
+    };
+    let raw: Vec<u8> = (0..side * side * 3).map(|_| next()).collect();
+    let img = image::RgbImage::from_raw(side, side, raw).expect("noise buffer");
+    let mut out = Vec::new();
+    img.write_to(&mut std::io::Cursor::new(&mut out), image::ImageFormat::Png)
+        .unwrap();
+    out
+}
+
+/// 10MB ちょうどの PNG (ファイル単体の上限を超える)。
+fn oversized_png() -> Vec<u8> {
+    let bytes = noisy_png(2000);
+    assert!(
+        bytes.len() > 10 * 1024 * 1024,
+        "テスト画像が上限を超えていない: {}",
+        bytes.len()
+    );
+    bytes
+}
+
+/// 上限すれすれ (< 10MB) の PNG。他のフォーム項目と合わせてもリクエストを通す必要がある。
+fn near_limit_png() -> Vec<u8> {
+    let limit = 10 * 1024 * 1024usize;
+    let mut side = 1700u32;
+    loop {
+        let bytes = noisy_png(side);
+        if bytes.len() >= limit {
+            assert!(side > 200, "画像が大きすぎます: {}", bytes.len());
+            side -= 50;
+            continue;
+        }
+        if bytes.len() + 512 * 1024 < limit {
+            side += 50;
+            continue;
+        }
+        assert!(
+            bytes.len() > 2 * 1024 * 1024,
+            "テスト画像が小さすぎます (2MB 上限の検証にならない): {}",
+            bytes.len()
+        );
+        return bytes;
+    }
+}
+
+/// 上限すれすれのカバーは、他のフォーム項目と同時に送っても切り捨てられない。
+/// (リクエスト全体の上限 = ファイル単体の上限 + 余裕)
+#[tokio::test]
+async fn near_limit_cover_survives_the_whole_multipart_request() {
+    let fixture = Fixture::new();
+    let (state, rustfs_store, _r2_store) = fixture.state_parts().await;
+    let app = fixture.app_with(state);
+
+    let image = near_limit_png();
+    // 記事本文もフォーム項目なので、リクエスト全体はファイル単体の上限を超える。
+    let mut fields = form_fields("near-limit", "", ("", "", "", "上限すれすれ"));
+    let long_body = "あ".repeat(300_000); // UTF-8 で約 900KB
+    for field in fields.iter_mut() {
+        if field.0 == "body" {
+            field.1 = long_body.clone();
+        }
+    }
+    let parts: Vec<(&str, &str)> = fields.iter().map(|(k, v)| (*k, v.as_str())).collect();
+    let body = multipart_body(&parts, Some(("cover_file", "near-limit.png", &image)));
+    assert!(
+        image.len() > 9 * 1024 * 1024,
+        "上限すれすれでない: {}",
+        image.len()
+    );
+    assert!(
+        body.len() > 10 * 1024 * 1024,
+        "リクエスト全体がファイル上限を超えていない (file {} / body {})",
+        image.len(),
+        body.len()
+    );
+
+    let (status, html) = post_multipart(&app, "/posts", body).await;
+    assert_eq!(status, StatusCode::SEE_OTHER, "{html}");
+
+    let stored = rustfs_store.lock().unwrap();
+    assert_eq!(
+        stored.len(),
+        1,
+        "RustFS へ 1 オブジェクト: {:?}",
+        stored.keys()
+    );
+    let (bytes, _) = stored.values().next().unwrap();
+    assert_eq!(bytes.len(), image.len(), "ボディ上限で切り捨てられていない");
+
+    let draft = fs::read_to_string(fixture.draft_path("near-limit")).unwrap();
+    assert!(draft.contains("alternativeText: 上限すれすれ"), "{draft}");
+    assert!(draft.ends_with(&long_body), "本文も切り捨てられていない");
+}
+
+/// ファイル単体の 10MB 検証は維持される (リクエスト上限を引き上げても緩めない)。
+#[tokio::test]
+async fn cover_over_the_file_limit_is_rejected_as_too_large() {
+    let fixture = Fixture::new();
+    let (state, rustfs_store, _r2_store) = fixture.state_parts().await;
+    let app = fixture.app_with(state);
+
+    let image = oversized_png();
+    let fields = form_fields("over-limit", "", ("", "", "", ""));
+    let parts: Vec<(&str, &str)> = fields.iter().map(|(k, v)| (*k, v.as_str())).collect();
+    let body = multipart_body(&parts, Some(("cover_file", "over.png", &image)));
+
+    let (status, html) = post_multipart(&app, "/posts", body).await;
+    assert_eq!(status, StatusCode::OK, "エラー画面を再表示: {html}");
+    assert!(html.contains("ファイルサイズが上限"), "{html}");
+    assert!(
+        !fixture.draft_path("over-limit").exists(),
+        "上限超過で作成しない"
+    );
+    assert!(
+        rustfs_store.lock().unwrap().is_empty(),
+        "上限超過の画像はストレージへ置かない"
+    );
+}
+
+/// 下書きカバー (非公開 RustFS) は /media-preview 中継で表示し、
+/// 記事へ書き込む URL そのものは <img src> にしない。
+#[tokio::test]
+async fn draft_cover_preview_goes_through_the_media_relay() {
+    let fixture = Fixture::new();
+    let (state, _rustfs_store, _r2_store) = fixture.state_parts().await;
+    let app = fixture.app_with(state);
+
+    let image = png_bytes(8, 5);
+    let fields = form_fields("preview-me", "", ("", "", "", "プレビュー"));
+    let parts: Vec<(&str, &str)> = fields.iter().map(|(k, v)| (*k, v.as_str())).collect();
+    let body = multipart_body(&parts, Some(("cover_file", "cover.png", &image)));
+    let (status, html) = post_multipart(&app, "/posts", body).await;
+    assert_eq!(status, StatusCode::SEE_OTHER, "{html}");
+
+    let draft = fs::read_to_string(fixture.draft_path("preview-me")).unwrap();
+    let stored_url = draft
+        .lines()
+        .find(|line| line.trim().starts_with("url:"))
+        .unwrap()
+        .trim()
+        .trim_start_matches("url:")
+        .trim()
+        .to_string();
+    assert!(
+        stored_url.contains("/rustfs/blog/preview-me/"),
+        "下書きは RustFS URL: {stored_url}"
+    );
+
+    for uri in ["/posts/preview-me", "/posts/preview-me/edit"] {
+        let (status, html) = get(&app, uri).await;
+        assert_eq!(status, StatusCode::OK, "{uri}");
+        assert!(
+            html.contains("src=\"/media-preview/blog/preview-me/"),
+            "{uri} は中継 URL で表示: {html}"
+        );
+        assert!(
+            !html.contains(&format!("src=\"{stored_url}\"")),
+            "{uri} は非公開 URL を直接表示しない: {html}"
+        );
+    }
+
+    // URL 欄には記事へ書き込む URL がそのまま残る (表示用と保存用を分ける)
+    let (_status, html) = get(&app, "/posts/preview-me/edit").await;
+    assert!(
+        html.contains(&format!("value=\"{stored_url}\"")),
+        "URL 欄は保存される URL: {html}"
+    );
+
+    // 中継は実際に画像を返す (カバーの key で 404 にならない)
+    let key = stored_url
+        .split("/rustfs/")
+        .nth(1)
+        .unwrap_or_else(|| panic!("key を抽出できない: {stored_url}"));
+    let (status, served) = get(&app, &format!("/media-preview/{key}")).await;
+    assert_eq!(status, StatusCode::OK, "中継がカバーを返す");
+    assert!(!served.is_empty(), "中継が画像を返す");
+}
+
+/// 公開済み (R2 など外部公開済み) のカバーは従来どおり URL を直接表示する。
+#[tokio::test]
+async fn published_cover_preview_is_used_directly() {
+    let fixture = Fixture::new();
+    let state = fixture.state().await;
+    let app = fixture.app_with(state);
+
+    let public_url = "https://image.officeiko.work/blog/old-cover.jpg";
+    fixture.write_post("old-cover", public_url);
+
+    let (status, html) = get(&app, "/posts/old-cover/edit").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        html.contains(&format!("src=\"{public_url}\"")),
+        "公開済み URL はそのまま表示: {html}"
+    );
+    assert!(!html.contains("/media-preview/"), "{html}");
+}
+
+/// カバーなしの公開は、メディア昇格・記事移動・state 記録より前に止まる。
+#[tokio::test]
+async fn publish_without_cover_stops_before_any_side_effect() {
+    let fixture = Fixture::new();
+    let (state, rustfs_store, r2_store) = fixture.state_parts().await;
+    let app = fixture.app_with(state.clone());
+
+    let fields = form_fields("no-side-effect", "", ("", "", "", ""));
+    let refs: Vec<(&str, &str)> = fields.iter().map(|(k, v)| (*k, v.as_str())).collect();
+    let (status, _) = post_form(&app, "/posts", &refs).await;
+    assert_eq!(status, StatusCode::SEE_OTHER);
+
+    let revision = state.repo.find("no-side-effect").unwrap().revision.clone();
+    let result = blog_manager::publish::run(
+        &state,
+        "no-side-effect",
+        &revision,
+        blog_manager::publish::PublishOptions {
+            git: false,
+            gmb: false,
+            retry_unknown: false,
+            deployed: false,
+        },
+    )
+    .await;
+    assert!(result.is_err(), "カバーなしは公開できない");
+    let message = result.err().unwrap();
+    assert!(message.contains("カバー画像"), "{message}");
+
+    assert!(rustfs_store.lock().unwrap().is_empty(), "昇格なし");
+    assert!(r2_store.lock().unwrap().is_empty(), "R2 への PUT なし");
+    let publish_dir = fixture.media.join("../publish");
+    if publish_dir.exists() {
+        assert!(
+            fs::read_dir(&publish_dir).unwrap().next().is_none(),
+            "公開 state を残さない"
+        );
+    }
+    assert!(
+        fixture.draft_path("no-side-effect").exists(),
+        "下書きはそのまま"
+    );
+}
+
+/// 新規作成の途中でアップロードが失敗しても、同一 slug は残らない (再試行できる)。
+#[tokio::test]
+async fn failed_cover_upload_on_create_leaves_the_slug_free_for_retry() {
+    let fixture = Fixture::new();
+    let (state, rustfs_store, _r2_store) = fixture.state_parts().await;
+    let app = fixture.app_with(state);
+
+    let fields = form_fields("retry-me", "", ("", "", "", "指輪"));
+    let parts: Vec<(&str, &str)> = fields.iter().map(|(k, v)| (*k, v.as_str())).collect();
+    let broken = b"not-an-image".to_vec();
+    let body = multipart_body(&parts, Some(("cover_file", "broken.png", &broken)));
+    let (status, html) = post_multipart(&app, "/posts", body).await;
+
+    assert_eq!(status, StatusCode::OK, "フォームを再表示: {html}");
+    assert!(html.contains("カバー画像が不正です"), "{html}");
+    assert!(
+        html.contains("value=\"retry-me\""),
+        "入力した slug を維持して再試行できる: {html}"
+    );
+    assert!(
+        html.contains("value=\"指輪\""),
+        "alt 入力も維持される: {html}"
+    );
+    assert!(
+        !fixture.draft_path("retry-me").exists(),
+        "失敗時に下書きを残さない"
+    );
+    assert!(
+        rustfs_store.lock().unwrap().is_empty(),
+        "不正画像を置かない"
+    );
+
+    // 同じ slug で再試行できる (取り残された下書きと衝突しない)
+    let image = png_bytes(7, 2);
+    let fields = form_fields("retry-me", "", ("", "", "", "指輪"));
+    let parts: Vec<(&str, &str)> = fields.iter().map(|(k, v)| (*k, v.as_str())).collect();
+    let body = multipart_body(&parts, Some(("cover_file", "cover.png", &image)));
+    let (status, html) = post_multipart(&app, "/posts", body).await;
+    assert_eq!(status, StatusCode::SEE_OTHER, "再試行で作成できる: {html}");
+
+    let draft = fs::read_to_string(fixture.draft_path("retry-me")).unwrap();
+    assert!(draft.contains("width: 7"), "{draft}");
+}
+
+/// 画像を選ばず URL だけでカバーを設定した記事を、編集 (multipart・ファイルなし)
+/// しても URL と寸法がそのまま残る。
+#[tokio::test]
+async fn manual_cover_url_survives_an_edit_without_a_file() {
+    let fixture = Fixture::new();
+    let state = fixture.state().await;
+    let app = fixture.app_with(state);
+
+    let fields = form_fields(
+        "manual-edit",
+        "",
+        (
+            "https://image.officeiko.work/blog/existing.jpg",
+            "1200",
+            "630",
+            "既存画像",
+        ),
+    );
+    let parts: Vec<(&str, &str)> = fields.iter().map(|(k, v)| (*k, v.as_str())).collect();
+    let body = multipart_body(&parts, None);
+    let (status, html) = post_multipart(&app, "/posts", body).await;
+    assert_eq!(status, StatusCode::SEE_OTHER, "{html}");
+
+    let (_status, html) = get(&app, "/posts/manual-edit/edit").await;
+    let revision = extract_hidden(&html, "expected_revision");
+    assert!(
+        html.contains("src=\"https://image.officeiko.work/blog/existing.jpg\""),
+        "公開済み URL はそのまま表示: {html}"
+    );
+
+    let fields = form_fields(
+        "manual-edit",
+        &revision,
+        (
+            "https://image.officeiko.work/blog/existing.jpg",
+            "1200",
+            "630",
+            "既存画像",
+        ),
+    );
+    let parts: Vec<(&str, &str)> = fields.iter().map(|(k, v)| (*k, v.as_str())).collect();
+    let body = multipart_body(&parts, None);
+    let (status, html) = post_multipart(&app, "/posts/manual-edit", body).await;
+    assert_eq!(status, StatusCode::SEE_OTHER, "{html}");
+
+    let raw = fs::read_to_string(fixture.draft_path("manual-edit")).unwrap();
+    assert!(
+        raw.contains("url: https://image.officeiko.work/blog/existing.jpg"),
+        "{raw}"
+    );
+    assert!(raw.contains("width: 1200"), "{raw}");
+    assert!(raw.contains("height: 630"), "{raw}");
+}

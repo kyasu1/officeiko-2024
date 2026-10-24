@@ -633,6 +633,26 @@ pub(crate) async fn promote_pending_media_locked(
     Ok(Ok((saved.body.clone(), saved.revision.clone())))
 }
 
+/// 記事に保存された画像 URL を、ブラウザで表示できる URL に変換する。
+///
+/// 管理下の RustFS URL は非公開バケットなのでブラウザから直接読めない。
+/// ローカル中継 `GET /media-preview/{*key}` へ振り向ければ、資格情報を記事に
+/// 書かずにプレビューできる。R2 など外部公開済みの URL はそのまま返す。
+/// これは表示 (`src`) 専用で、記事へ書き込む URL は `cover_url` の側である。
+pub fn preview_url_for(state: &AppState, url: &str) -> String {
+    let base = rustfs_public_base(state);
+    if base.is_empty() {
+        return url.to_string();
+    }
+    match url
+        .strip_prefix(&base)
+        .and_then(|rest| rest.strip_prefix('/'))
+    {
+        Some(key) if !key.is_empty() => format!("/media-preview/{key}"),
+        _ => url.to_string(),
+    }
+}
+
 fn rustfs_public_base(state: &AppState) -> String {
     state
         .rustfs

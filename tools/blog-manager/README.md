@@ -122,10 +122,16 @@ slug 空間とファイル名空間を混ぜないことで、`slug=shadowed` �
   メディア昇格 (§2.5 step 0) で R2 URL へ差し替わる
 - 画像不正・ストレージ障害・昇格失敗のいずれも**保存そのものを中止**し、既存カバーと本文を
   そのまま残す。旧カバーのオブジェクトは削除しない (孤児オブジェクトは許容)
+- **表示用 URL は保存用 URL と別**。管理下の RustFS カバーは非公開バケットなのでブラウザから
+  直接読めず、詳細・編集画面は `GET /media-preview/{*key}` のローカル中継で表示する。
+  記事へ書き込む URL (URL 欄) はそのまま。R2 など公開済み URL は直接表示する
 - URL がないのに width/height/alt だけが入力された場合は「取り消し忘れ」としてエラーにし、
   入力を黙って捨てない。カバーを取り消すには 4 項目をすべて空にする
-- axum 既定の 2MB ボディ上限は、multipart を受け付けるルートで `MAX_UPLOAD_BYTES` (10MB) に
-  引き上げている (既定値のままでは 10MB 上限のアップロードが読み取れない)
+- ボディ上限は**ファイル単体とリクエスト全体で分ける**。`validate_upload` は画像 10MB
+  (`MAX_UPLOAD_BYTES`) を検証し、multipart ルートの `DefaultBodyLimit` は
+  `MAX_REQUEST_BYTES` (10MB + 2MB 余裕)。multipart のボディには境界マーカーと
+  他のフォーム項目 (title / body / revision) も入るため、同一値だと 10MB ちょうどの
+  画像が他の項目と同時に通らない。axum 既定の 2MB のままでも読み取れていなかった
 
 ### M5 publish への接続
 
@@ -165,7 +171,7 @@ slug 空間とファイル名空間を混ぜないことで、`slug=shadowed` �
 CARGO_INCREMENTAL=0 cargo test --locked --offline \
   --manifest-path tools/blog-manager/Cargo.toml \
   --target-dir /private/tmp/officeiko-m5-target
-# → 85 passed / 0 failed / 2 ignored
+# → 92 passed / 0 failed / 2 ignored
 
 # 実ストレージへの疎通 (ignored の 2 件。RUSTFS_*/R2_* の実設定が必要)
 cargo test --manifest-path tools/blog-manager/Cargo.toml --test live_storage -- --ignored
@@ -208,7 +214,12 @@ cargo test --locked --offline --manifest-path ../gmb-event-poster/Cargo.toml   #
   - 公開済み記事のカバー差し替えは即 R2 昇格し、RustFS URL を書かないこと
   - 下書きカバーは公開時の昇格で R2 URL へ差し替わること
   - アップロード失敗・画像不正時に既存カバーと本文を維持すること
-  - axum 既定の 2MB 上限でカバー画像が切り捨てられないこと
+  - 新規作成のアップロード失敗時に下書きを残さず、同一 slug で再試行できること
+  - 公開時のカバー検証がメディア昇格・記事移動・state 記録より前であること
+  - 上限すれすれ (約 9.7MB) のカバーを 900KB の本文と同時に送っても通ること
+    (リクエスト全体は 10MB を超える)、10MB 超過はファイル単体で拒否すること
+  - 下書きカバーは /media-preview 中継で表示し、非公開 URL を `src` に使わないこと
+  - 公開済み URL はそのまま表示し、URL だけの設定はファイルなしの編集でも残ること
 - 公開ステートマシン (`tests/publish.rs`): 昇格→移動→git→GMB の遷移、中断からの再開、
   `in_flight` 永続化と unknown 化 (自動再送しない)、git preflight の stage 検査
 - 実ストレージ (`tests/live_storage.rs`): `#[ignore]` の 2 件。実 RustFS/R2 の設定がある環境でのみ実行

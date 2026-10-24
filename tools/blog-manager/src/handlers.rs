@@ -172,6 +172,8 @@ struct DetailTemplate {
     status_class: &'static str,
     url_path: String,
     cover_url: String,
+    /// 表示用のカバー URL。管理下の RustFS は /media-preview 中継に差し替わっている
+    cover_preview: String,
     cover_width: u32,
     cover_height: u32,
     cover_alt: String,
@@ -194,7 +196,7 @@ struct DetailTemplate {
 
 pub async fn detail(State(state): State<AppState>, Path(slug): Path<String>) -> Response {
     match state.repo.find(&slug) {
-        Some(post) => render_detail(post, ""),
+        Some(post) => render_detail(&state, post, ""),
         None => not_found(&format!("slug: {slug}")),
     }
 }
@@ -208,7 +210,7 @@ pub async fn file_detail(
         return not_found(&format!("status: {status}"));
     };
     match state.repo.find_file(status, &file_name) {
-        Some(post) => render_detail(post, ""),
+        Some(post) => render_detail(&state, post, ""),
         None => not_found(&format!("file: {file_name}")),
     }
 }
@@ -232,7 +234,7 @@ fn not_found(detail: &str) -> Response {
         .into_response()
 }
 
-fn render_detail(post: PostFile, flash: &str) -> Response {
+fn render_detail(state: &AppState, post: PostFile, flash: &str) -> Response {
     let front_matter = post.front_matter.clone();
     // 編集・削除リンクは `/posts/{slug}` 配下のルートを使うため、
     // ルートに乗る記事 (slug が有効) だけ操作できる
@@ -254,6 +256,11 @@ fn render_detail(post: PostFile, flash: &str) -> Response {
                 .cover_image
                 .as_ref()
                 .map(|cover| cover.url.clone())
+                .unwrap_or_default(),
+            cover_preview: fm
+                .cover_image
+                .as_ref()
+                .map(|cover| crate::handlers_media::preview_url_for(state, &cover.url))
                 .unwrap_or_default(),
             cover_width: fm
                 .cover_image
@@ -295,6 +302,7 @@ fn render_detail(post: PostFile, flash: &str) -> Response {
             status_class: status_class(post.status),
             url_path: String::new(),
             cover_url: String::new(),
+            cover_preview: String::new(),
             cover_width: 0,
             cover_height: 0,
             cover_alt: String::new(),
@@ -335,6 +343,8 @@ struct FormTemplate {
     values: FormValues,
     /// 楽観ロック衝突。再読み込みを促し、revision は空にして再送も拒否する。
     conflict: bool,
+    /// 現在のカバー画像の表示用 URL (管理下 RustFS は /media-preview 中継)
+    cover_preview: String,
 }
 
 #[derive(Default, Clone)]
@@ -524,8 +534,9 @@ fn parse_dimension(value: &str, field: &str, errors: &mut Vec<String>) -> u32 {
     }
 }
 
-pub async fn new_form() -> Response {
+pub async fn new_form(State(state): State<AppState>) -> Response {
     render_template(form_template_new(
+        &state,
         FormValues {
             published_on: chrono::Local::now().format("%Y-%m-%d").to_string(),
             category: "blog".to_string(),
@@ -535,7 +546,8 @@ pub async fn new_form() -> Response {
     ))
 }
 
-fn form_template_new(values: FormValues, errors: Vec<String>) -> FormTemplate {
+fn form_template_new(state: &AppState, values: FormValues, errors: Vec<String>) -> FormTemplate {
+    let cover_preview = crate::handlers_media::preview_url_for(state, &values.cover_url);
     FormTemplate {
         heading: "新規記事 (下書き)",
         is_edit: false,
@@ -547,6 +559,7 @@ fn form_template_new(values: FormValues, errors: Vec<String>) -> FormTemplate {
         errors,
         values,
         conflict: false,
+        cover_preview,
     }
 }
 
@@ -642,7 +655,7 @@ pub async fn create(State(state): State<AppState>, article: ArticleForm) -> Resp
     let mut front_matter = match form.to_front_matter(base, article.cover.is_some()) {
         Ok(front_matter) => front_matter,
         Err(errors) => {
-            return render_template(form_template_new(form.values(), errors));
+            return render_template(form_template_new(&state, form.values(), errors));
         }
     };
 
@@ -658,13 +671,14 @@ pub async fn create(State(state): State<AppState>, article: ArticleForm) -> Resp
         )
         .await
         {
-            return render_template(form_template_new(form.values(), vec![error]));
+            return render_template(form_template_new(&state, form.values(), vec![error]));
         }
     }
 
     match state.repo.create(&front_matter, &form.body) {
         Ok(_) => Redirect::to("/?flash=created").into_response(),
         Err(err) => render_template(form_template_new(
+            &state,
             form.values(),
             vec![err.display_message()],
         )),
@@ -693,6 +707,11 @@ pub async fn edit_form(State(state): State<AppState>, Path(slug): Path<String>) 
         errors: Vec::new(),
         values: FormValues::from_front_matter(&front_matter, &post.body),
         conflict: false,
+        cover_preview: front_matter
+            .cover_image
+            .as_ref()
+            .map(|cover| crate::handlers_media::preview_url_for(&state, &cover.url))
+            .unwrap_or_default(),
     })
 }
 
@@ -735,7 +754,7 @@ pub async fn save_article(
     if form.git.is_some() && post.status == Status::Published {
         let record = crate::publish::PublishRecord::new(slug, &post.file_name, &post.revision);
         if let Err(error) = crate::publish::git_preflight(state, &record).await {
-            return render_template(form_template_error(post, form, vec![error], false));
+            return render_template(form_template_error(state, post, form, vec![error], false));
         }
     }
     let mut front_matter = match form.to_front_matter(current.clone(), article.cover.is_some()) {
@@ -743,7 +762,7 @@ pub async fn save_article(
         Err(errors) => {
             // 入力エラー時は **フォームが持ってきた revision を維持**する。
             // 最新の revision を返すと、再送信で他人の保存内容を上書きできてしまう。
-            return render_template(form_template_error(post, form, errors, false));
+            return render_template(form_template_error(state, post, form, errors, false));
         }
     };
 
@@ -759,7 +778,7 @@ pub async fn save_article(
         )
         .await
         {
-            return render_template(form_template_error(post, form, vec![error], false));
+            return render_template(form_template_error(state, post, form, vec![error], false));
         }
     }
 
@@ -772,6 +791,7 @@ pub async fn save_article(
     let change = if form.git.is_some() && post.status == Status::Published {
         if form.expected_revision.is_empty() || form.expected_revision != post.revision {
             return render_template(form_template_error(
+                state,
                 post,
                 form,
                 vec!["revisionが一致しません".into()],
@@ -799,6 +819,7 @@ pub async fn save_article(
         Err(err) => {
             let conflict = matches!(err, RepoError::Conflict | RepoError::RevisionRequired);
             render_template(form_template_error(
+                state,
                 post,
                 form,
                 vec![err.display_message()],
@@ -810,11 +831,13 @@ pub async fn save_article(
 
 /// 保存失敗時のフォーム再描画 (衝突時は revision を空にして再送信も拒否)。
 fn form_template_error(
+    state: &AppState,
     post: PostFile,
     form: PostForm,
     errors: Vec<String>,
     conflict: bool,
 ) -> FormTemplate {
+    let cover_preview = crate::handlers_media::preview_url_for(state, &form.cover_url);
     FormTemplate {
         heading: "記事を編集",
         is_edit: true,
@@ -831,6 +854,7 @@ fn form_template_error(
         errors,
         values: form.values(),
         conflict,
+        cover_preview,
     }
 }
 
@@ -930,7 +954,7 @@ pub async fn detail_with_flash(
     query: axum::extract::Query<ListQuery>,
 ) -> Response {
     match state.repo.find(&slug) {
-        Some(post) => render_detail(post, flash_message(&query.flash)),
+        Some(post) => render_detail(&state, post, flash_message(&query.flash)),
         None => not_found(&format!("slug: {slug}")),
     }
 }

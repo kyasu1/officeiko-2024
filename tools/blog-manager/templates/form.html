@@ -100,7 +100,7 @@
 
       {% if !values.cover_url.is_empty() %}
       <div class="md:col-span-4 flex flex-wrap items-center gap-3">
-        <img src="{{ values.cover_url }}" alt="現在のカバー画像" class="h-20 w-auto rounded border" />
+        <img src="{{ cover_preview }}" alt="現在のカバー画像" class="h-20 w-auto rounded border" />
         <div class="text-xs text-base-content/60">
           現在のカバー: {{ values.cover_width }}×{{ values.cover_height }}<br />
           新しい画像を選ぶと差し替わります（旧画像は削除されません）。

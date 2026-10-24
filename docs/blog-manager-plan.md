@@ -228,14 +228,30 @@ M6から独立した次の実装として扱い、この記事全体のプレビ
   下書きは RustFS URL を書き、公開時に §2.5 step 0 の昇格で R2 URL へ差し替わる。
 - 画像不正・ストレージ障害・R2昇格失敗はいずれも**保存を中止**し、既存カバーと本文をそのまま残す。
   旧カバーのオブジェクトは削除しない (孤児オブジェクトは許容)。
-- URL がないのに width/height/alt だけが入力は「取り消し忘れ」としてエラーにし、入力を捨てない。
+- URL がないのに width/height/alt だけが入力された場合は「取り消し忘れ」としてエラーにし、入力を捨てない。
   カバー解除は 4 項目をすべて空にする (下書きのみ可、公開時はエラー)。
-- multipart を受け付ける 4 ルートでボディ上限を `MAX_UPLOAD_BYTES` (10MB) へ引き上げた。
-  axum 既定の 2MB のままでは、10MB 上限のはずのアップロードが読み取れていなかった (M4 の潜在不具合)。
-- テスト: `tools/blog-manager/tests/cover_upload.rs` (11件)。127.0.0.1 にメモリ保存の偽 S3 を起動し、
+- multipart を受け付ける 4 ルートでボディ上限を適用した。axum 既定の 2MB のままでは、
+  10MB 上限のはずのアップロードが読み取れていなかった (M4 の潜在不具合)。
+  ただし `DefaultBodyLimit` は**リクエスト全体**にかかるため、ファイル単体の検証
+  (`MAX_UPLOAD_BYTES` = 10MB) とは分離し、`MAX_REQUEST_BYTES` (10MB + 2MB の余裕) を使う。
+  同一値にすると 10MB ちょうどの画像が本文などのフォーム項目と同時に通らない (codex レビュー指摘)。
+- 表示用 URL は保存用 URL と分けた (`handlers_media::preview_url_for`)。管理下の RustFS カバーは
+  非公開バケットでブラウザから直接読めないため、詳細・編集画面は `/media-preview` 中継へ振り向け、
+  記事へ書き込む URL (URL 欄) はそのまま残す。R2 など公開済み URL は直接表示する (codex レビュー指摘)。
+- テスト: `tools/blog-manager/tests/cover_upload.rs` (18件)。127.0.0.1 にメモリ保存の偽 S3 を起動し、
   実 PUT/GET・公開時の R2 昇格まで検証する (ネットワーク不要・`--offline` で動く)。
-- 未実装: 本文全体のプレビュー (§2.4.1)。フォームのカバー表示は記事へ書き込む URL を直接表示している
-  (メディア一覧の `/media-preview` 中継は既存どおり)。
+- 受入確認 (codex 要求):
+  - 新規作成でアップロードが失敗した場合は下書きを残さないため同一 slug が残り、入力値を維持した
+    フォームから再試行できる (`failed_cover_upload_on_create_leaves_the_slug_free_for_retry`)
+  - 公開時のカバー検証はメディア昇格・記事移動・git・GMB・state 記録より前に走る
+    (`publish_without_cover_stops_before_any_side_effect`)
+  - 画像を選ばず URL だけでカバーを設定した編集も維持される
+    (`manual_cover_url_still_works_through_multipart` / `manual_cover_url_survives_an_edit_without_a_file`)
+  - 上限すれすれの画像 + 900KB の本文でリクエスト全体が 10MB を超えても通り、
+    画像単体 10MB 超過は拒否される (`near_limit_cover_survives_the_whole_multipart_request` /
+    `cover_over_the_file_limit_is_rejected_as_too_large`)
+- 未実装: 本文全体のプレビュー (§2.4.1)。カバー画像の表示は管理下 RustFS なら
+  `/media-preview` 中継、公開済み URL は直接表示 (§2.4.2 実装済み)。
 
 ### 2.5 公開フロー (`POST /posts/:slug/publish`) — ステートマシン化
 **state モデル (codex 第2回 P1 反映)** — `tools/blog-manager/state/` 配下:
